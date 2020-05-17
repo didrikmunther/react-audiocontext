@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Synth, SynthData, SynthElementType } from './Synth';
 import { Piano } from './Piano';
+import { Display } from './Display';
 
 interface DemoCanvasWidgetProps {
 	color?: string;
@@ -59,6 +60,13 @@ const DemoCanvasWidget = (props: DemoCanvasWidgetProps) => (
 );
 
 export const App = () => {
+	const [audio] = useState(new AudioContext());
+	const [analyser] = useState(audio.createAnalyser());
+
+	useEffect(() => {
+		analyser.connect(audio.destination);
+	}, [audio, analyser]);
+
 	const [synth, setSynth] = useState<SynthData[]>([{
 		id: 1,
 		connections: [0],
@@ -85,7 +93,11 @@ export const App = () => {
 				synth={synth}
 				setSynth={setSynth}></Synth>
 			<Piano
+				audio={audio}
+				analyser={analyser}
 				synth={synth}></Piano>
+			<Display
+				analyser={analyser}></Display>
 		</DemoCanvasWidget>
 	);
 };

@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { SynthData, SynthElementType } from './Synth';
 import { Bindings } from '../data/Bindings';
 
 type PianoProps = {
-    synth: SynthData[]
+    synth: SynthData[],
+    audio: AudioContext,
+    analyser: AnalyserNode
 };
 
-export const Piano = ({ synth }: PianoProps) => {
-    const [audio] = useState(new AudioContext());
-    
+export const Piano = ({ synth, audio, analyser }: PianoProps) => {
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
             if(e.repeat) return;
@@ -63,7 +63,7 @@ export const Piano = ({ synth }: PianoProps) => {
             synth.forEach(v => {
                 v.connections.forEach(c => {
                     if(c === 0) {
-                        elements[v.id].connect(audio.destination);
+                        elements[v.id].connect(analyser);
                     } else {
                         elements[v.id].connect(elements[c]);
                     }
@@ -79,7 +79,7 @@ export const Piano = ({ synth }: PianoProps) => {
 
         document.addEventListener('keydown', onKeyDown);
         return () => document.removeEventListener('keydown', onKeyDown);
-    }, [synth, audio]);
+    }, [synth, audio, analyser]);
 
     return (
         <>
