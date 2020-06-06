@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import { Synth, SynthData, SynthElementType } from './Synth';
-import { Piano } from './Piano';
-import { Display } from './Display';
+// import { Synth, SynthData, SynthElementType } from './Synth';
+// import { Piano } from './Piano';
+// import { Display } from './Display';
+import { ES1, ConnectableNode } from './ES1/ES1';
 
 interface DemoCanvasWidgetProps {
 	color?: string;
@@ -59,37 +60,40 @@ const DemoCanvasWidget = (props: DemoCanvasWidgetProps) => (
 	</Container>
 );
 
+const getLocal = (key: string): Object => {
+	const res = localStorage.getItem(key);
+	if(res === null)
+		return {};
+
+	return JSON.parse(res) || {};
+};
+
 export const App = () => {
 	const [audio] = useState(new AudioContext());
 	const [analyser] = useState(audio.createAnalyser());
+
+	const [,setNode] = useState<ConnectableNode>();
+	const [serialized, setSerialized] = useState(getLocal('ES1'));
 
 	useEffect(() => {
 		analyser.connect(audio.destination);
 	}, [audio, analyser]);
 
-	const [synth, setSynth] = useState<SynthData[]>([{
-		id: 1,
-		connections: [0],
-		elementType: SynthElementType.Oscillator,
-
-		form: 'sine',
-		attack: .2,
-		release: .5,
-		volume: 1
-	},{
-		id: 3,
-		connections: [0],
-		elementType: SynthElementType.Oscillator,
-
-		form: 'square',
-		attack: .2,
-		release: .5,
-		volume: 1
-	}]);
+	const _setNode = useCallback(
+		(node: ConnectableNode) => {
+			const serialized = node.getSerialized();
+			setNode(node);
+			setSerialized(serialized);
+			console.log(serialized);
+			localStorage.setItem('ES1', JSON.stringify(serialized));
+		},
+		[setNode, setSerialized]
+	);
 
 	return (
 		<DemoCanvasWidget>
-			<Synth
+			<ES1 audio={audio} setNode={_setNode} initial={serialized as any}></ES1>
+			{/* <Synth
 				synth={synth}
 				setSynth={setSynth}></Synth>
 			<Piano
@@ -97,7 +101,7 @@ export const App = () => {
 				analyser={analyser}
 				synth={synth}></Piano>
 			<Display
-				analyser={analyser}></Display>
+				analyser={analyser}></Display> */}
 		</DemoCanvasWidget>
 	);
 };
