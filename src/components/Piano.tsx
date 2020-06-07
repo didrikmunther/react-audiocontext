@@ -1,85 +1,51 @@
-import React, { useEffect } from 'react';
-import { SynthData, SynthElementType } from './Synth';
+import React, { useEffect, useState } from 'react';
 import { Bindings } from '../data/Bindings';
 
 type PianoProps = {
-    synth: SynthData[],
     audio: AudioContext,
-    analyser: AnalyserNode
+    playNote: (note: number, release: Promise<void>) => void
 };
 
-export const Piano = ({ synth, audio, analyser }: PianoProps) => {
+export const Piano = ({ audio, playNote }: PianoProps) => {
+    const [releasables, setReleasables] = useState<{
+        [note: number]: () => void
+    }>({});
+
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
             if(e.repeat) return;
-
             const note = Bindings[e.key.toLowerCase()];
-
-            console.log(note);
-
             if(!note) return;
+            console.log('Playing note', note);
 
-            const elements = new Array(Math.max(...synth.map(v => v.id)));
-            let sources: OscillatorNode[] = [];
+            playNote(note, new Promise(res => setReleasables({
+                ...releasables,
+                [note]: res
+            })));
+        };
 
-            const oscillator = (v: SynthData) => {
-                const osc = audio.createOscillator();
-                osc.type = v.form as OscillatorType;
+        const onKeyUp = (e: KeyboardEvent) => {
+            const note = Bindings[e.key.toLowerCase()];
+            if(!note) return;
+            if(!releasables[note]) return;
 
-                const sweepLen = 2;
-                const env = audio.createGain();
-                env.gain.cancelScheduledValues(audio.currentTime);
-                env.gain.setValueAtTime(0, audio.currentTime);
-                env.gain.linearRampToValueAtTime(1, audio.currentTime + (v.attack as number || .2));
-                env.gain.linearRampToValueAtTime(0, audio.currentTime + sweepLen - (v.release as number || .2));
-                
-                const volume = audio.createGain();
-                volume.gain.value = v.volume as number || 0;
+            console.log('Releasing note', note);
+            releasables[note]();
 
-                osc.connect(env).connect(volume);
-
-                elements[v.id] = volume;
-                sources.push(osc);
-            };
-
-            const gain = (v: SynthData) => {
-                const gain = audio.createGain();
-                gain.gain.value = v.volume as number || 1;
-
-                elements[v.id] = gain;
-            };
-
-            synth.forEach((v, i) => {
-                switch(v.elementType) {
-                    case SynthElementType.Oscillator:
-                        oscillator(v);
-                        break;
-                    case SynthElementType.Gain:
-                        gain(v);
-                        break;
-                }
-            });
-
-            synth.forEach(v => {
-                v.connections.forEach(c => {
-                    if(c === 0) {
-                        elements[v.id].connect(analyser);
-                    } else {
-                        elements[v.id].connect(elements[c]);
-                    }
-                });
-            });
-
-            sources.forEach(v => {
-                v.frequency.setValueAtTime(audio.currentTime, note);
-                v.frequency.value = note;
-                v.start();
-            });
+            setReleasables(
+                Object.entries(releasables)
+                    .filter(([k]) => +k !== note)
+                    .reduce((a, [k, v]) => ({...a, [k]: v}), {})
+            );
         };
 
         document.addEventListener('keydown', onKeyDown);
-        return () => document.removeEventListener('keydown', onKeyDown);
-    }, [synth, audio, analyser]);
+        document.addEventListener('keyup', onKeyUp);
+        return () => {
+            document.removeEventListener('keydown', onKeyDown);
+            document.removeEventListener('keyup', onKeyUp);
+        }
+    }, [audio, playNote, releasables, setReleasables]);
 
     return (
         <>

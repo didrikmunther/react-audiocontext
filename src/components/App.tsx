@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-// import { Synth, SynthData, SynthElementType } from './Synth';
-// import { Piano } from './Piano';
-// import { Display } from './Display';
-import { ES1, ConnectableNode } from './ES1/ES1';
+import { InputNode } from './ES1/ES1';
+import { Piano } from './Piano';
+import { Channel } from './Channel';
+import { Display } from './Display';
 
 interface DemoCanvasWidgetProps {
 	color?: string;
@@ -60,39 +60,32 @@ const DemoCanvasWidget = (props: DemoCanvasWidgetProps) => (
 	</Container>
 );
 
-const getLocal = (key: string): Object => {
-	const res = localStorage.getItem(key);
-	if(res === null)
-		return {};
-
-	return JSON.parse(res) || {};
-};
-
 export const App = () => {
 	const [audio] = useState(new AudioContext());
 	const [analyser] = useState(audio.createAnalyser());
-
-	const [,setNode] = useState<ConnectableNode>();
-	const [serialized, setSerialized] = useState(getLocal('ES1'));
+	const [inputNode, setInputNode] = useState<InputNode>();
 
 	useEffect(() => {
 		analyser.connect(audio.destination);
 	}, [audio, analyser]);
 
-	const _setNode = useCallback(
-		(node: ConnectableNode) => {
-			const serialized = node.getSerialized();
-			setNode(node);
-			setSerialized(serialized);
-			console.log(serialized);
-			localStorage.setItem('ES1', JSON.stringify(serialized));
+	const playNote = useCallback(
+		(note: number, releasePromise: Promise<void>) => {
+			if(!inputNode) return;
+
+			const { release } = inputNode.connect(analyser).play(note);
+
+			releasePromise.then(release);
 		},
-		[setNode, setSerialized]
+		[analyser, inputNode]
 	);
 
 	return (
 		<DemoCanvasWidget>
-			<ES1 audio={audio} setNode={_setNode} initial={serialized as any}></ES1>
+			<Piano audio={audio} playNote={playNote}></Piano>
+			<Channel audio={audio} setInputNode={setInputNode}></Channel>
+			<Display analyser={analyser}></Display>
+			
 			{/* <Synth
 				synth={synth}
 				setSynth={setSynth}></Synth>
