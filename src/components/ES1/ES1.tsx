@@ -1,28 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { InputNode } from '../Channel';
 
 export type OscillatorMode = 'poly' | 'mono' | 'legato';
-
-export interface ConnectableNode {
-    getSerialized: () => {
-        [key: string]: any
-    },
-};
-
-export interface MiddleNode extends ConnectableNode {
-    connect: () => {
-        in: AudioNode,
-        out: AudioNode
-    },
-};
-
-export interface InputNode extends ConnectableNode {
-    connect: (node: AudioNode) => {
-        play: (note: number) => {
-            release: () => void
-        }
-    },
-};
 
 const SynthElementStyled = styled.div`
     margin: 15px;

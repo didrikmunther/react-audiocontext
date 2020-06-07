@@ -1,5 +1,26 @@
 import React, { useState, useCallback } from 'react';
-import { ES1, InputNode } from './ES1/ES1';
+import { ES1 } from './ES1/ES1';
+
+export interface ConnectableNode {
+    getSerialized: () => {
+        [key: string]: any
+    },
+};
+
+export interface MiddleNode extends ConnectableNode {
+    connect: () => {
+        in: AudioNode,
+        out: AudioNode
+    },
+};
+
+export interface InputNode extends ConnectableNode {
+    connect: (node: AudioNode) => {
+        play: (note: number) => {
+            release: () => void
+        }
+    },
+};
 
 const getLocal = (key: string): Object => {
 	const res = localStorage.getItem(key);

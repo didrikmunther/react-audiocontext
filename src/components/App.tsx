@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import { InputNode } from './ES1/ES1';
 import { Piano } from './Piano';
-import { Channel } from './Channel';
+import { Channel, InputNode } from './Channel';
 import { Display } from './Display';
 
 interface DemoCanvasWidgetProps {
@@ -21,6 +20,7 @@ export const Container = styled.div<ContainerProps>`
 	background-color: ${p => p.background};
 	background-size: 50px 50px;
 	display: flex;
+	align-items: start;
 	/* > * {
 		height: 100%;
 		min-height: 100%;
@@ -85,16 +85,6 @@ export const App = () => {
 			<Piano audio={audio} playNote={playNote}></Piano>
 			<Channel audio={audio} setInputNode={setInputNode}></Channel>
 			<Display analyser={analyser}></Display>
-			
-			{/* <Synth
-				synth={synth}
-				setSynth={setSynth}></Synth>
-			<Piano
-				audio={audio}
-				analyser={analyser}
-				synth={synth}></Piano>
-			<Display
-				analyser={analyser}></Display> */}
 		</DemoCanvasWidget>
 	);
 };
