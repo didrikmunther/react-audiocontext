@@ -48,7 +48,7 @@ export const Midi = ({ commands$ }: MidiProps) => {
                 const [command, note] = e.data;
                 const velocity = (e.data.length > 2) ? e.data[2] : 0;
 
-                console.log(command, note, velocity);
+                // console.log(command, note, velocity);
 
                 const noteOn = () => commands$.next({note, velocity});
                 const noteOff = () => commands$.next({note, velocity: 0});

@@ -6,7 +6,7 @@ import { Observable } from 'rxjs';
 
 export type OscillatorMode = 'poly' | 'mono' | 'legato';
 
-const useSlider = (initialValue: number, min: number = 0, max: number = 2) => {
+const useSlider = (initialValue: number, min: number = 0, max: number = 2, step: number = .01) => {
     const [value, setValue] = useState<number>(initialValue);
 
     return {
@@ -16,7 +16,7 @@ const useSlider = (initialValue: number, min: number = 0, max: number = 2) => {
         bind: {
             value,
             onChange: (e: React.ChangeEvent<HTMLInputElement>) => setValue(+(e.target as HTMLInputElement)?.value),
-            step: 0.01,
+            step,
             type: 'range',
             min,
             max,
@@ -55,6 +55,8 @@ interface ES1Props extends ConnectableNode {
         attack: number,
         volume: number,
         glide: number,
+        voices: number,
+        detune: number
     }
 };
 
@@ -65,10 +67,12 @@ export const ES1 = ({ audio, setSerialized, initial, out, commands$ }: ES1Props)
     const {value: attack, bind: attackBind} = useSlider(initial.attack ?? .2);
     const {value: volume, bind: volumeBind} = useSlider(initial.volume ?? .2);
     const {value: glide, bind: glideBind} = useSlider(initial.glide ?? .2);
+    const {value: voices, bind: voicesBind} = useSlider(initial.voices ?? 1);
+    const {value: detune, bind: detuneBind} = useSlider(initial.detune ?? 0);
 
     const [playing] = useState<{
         [note: number]: {
-            osc: OscillatorNode,
+            osc: OscillatorNode[],
             env: GainNode
         }
     }>({});
@@ -89,10 +93,12 @@ export const ES1 = ({ audio, setSerialized, initial, out, commands$ }: ES1Props)
                 active.env.gain.cancelScheduledValues(audio.currentTime)
                     .setTargetAtTime(active.env.gain.value, audio.currentTime, 0)
                     .linearRampToValueAtTime(0, audio.currentTime + release);
+
+                return;
             }
 
-            const osc = audio.createOscillator();
-            osc.type = form;
+            // const osc = audio.createOscillator();
+            // osc.type = form;
 
             const env = audio.createGain();
             env.gain.cancelScheduledValues(audio.currentTime)
@@ -102,15 +108,20 @@ export const ES1 = ({ audio, setSerialized, initial, out, commands$ }: ES1Props)
             const gain = audio.createGain();
             gain.gain.setValueAtTime(volume * velocity / 127, audio.currentTime);
 
-            osc.connect(env).connect(gain).connect(out);
+            const [, frequency] = Object.entries(Notes)[note];
+
+            const osc = [...Array(voices)].map((v, i, a) => {
+                const osc = audio.createOscillator();
+                osc.connect(env).connect(gain).connect(out);
+
+                osc.type = form;
+                osc.frequency.setValueAtTime(frequency, audio.currentTime);
+                osc.detune.setValueAtTime(detune * ( a.length / 2 - i ), audio.currentTime);
+                return osc;
+            });
             
-            const [toneName, frequency] = Object.entries(Notes)[note];
-
-            console.log('Playing frequency', toneName, frequency);
-
-            osc.frequency.setValueAtTime(frequency, audio.currentTime);
-            osc.frequency.value = frequency;
-            osc.start();
+            // console.log('Playing frequency', toneName, frequency);
+            osc.forEach(v => v.start());
 
             playing[note] = {
                 osc,
@@ -119,7 +130,7 @@ export const ES1 = ({ audio, setSerialized, initial, out, commands$ }: ES1Props)
         });
 
         return () => sub.unsubscribe();
-    }, [audio, commands$, playing, form, release, attack, volume, mode, glide, out]);
+    }, [audio, commands$, playing, form, release, attack, volume, mode, glide, out, voices, detune]);
 
     useEffect(() => {
         setSerialized({
@@ -128,9 +139,11 @@ export const ES1 = ({ audio, setSerialized, initial, out, commands$ }: ES1Props)
             release,
             attack,
             volume,
-            glide
+            glide,
+            voices,
+            detune
         })
-    }, [setSerialized, mode, form, release, attack, volume, glide]);
+    }, [setSerialized, mode, form, release, attack, volume, glide, voices, detune]);
 
     return (
         <>
@@ -168,7 +181,15 @@ export const ES1 = ({ audio, setSerialized, initial, out, commands$ }: ES1Props)
                 </label>
                 <label>
                     <span>Volume: {volume}</span>
-                    <input {...volumeBind}></input>
+                    <input {...volumeBind} max={1} step={.0001}></input>
+                </label>
+                <label>
+                    <span>Voices: {voices}</span>
+                    <input {...voicesBind} step={1} min={1} max={16}></input>
+                </label>
+                <label>
+                    <span>Detune: {detune}</span>
+                    <input {...detuneBind}></input>
                 </label>
             </Box>
         </>

@@ -26,7 +26,6 @@ export const Display = ({ analyser }: DisplayProps) => {
 
         analyser.fftSize = 256;
         var bufferLengthAlt = analyser.frequencyBinCount;
-        console.log(bufferLengthAlt);
         var dataArrayAlt = new Uint8Array(bufferLengthAlt);
 
         ctx.clearRect(0, 0, WIDTH, HEIGHT);
