@@ -1,25 +1,17 @@
 import React, { useState, useCallback } from 'react';
 import { ES1 } from './ES1/ES1';
+import { Observable } from 'rxjs';
+
+export type Command = {
+    note: number,
+    velocity: number
+}
 
 export interface ConnectableNode {
-    getSerialized: () => {
+    audio: AudioContext,
+    setSerialized: (serialized: {
         [key: string]: any
-    },
-};
-
-export interface MiddleNode extends ConnectableNode {
-    connect: () => {
-        in: AudioNode,
-        out: AudioNode
-    },
-};
-
-export interface InputNode extends ConnectableNode {
-    connect: (node: AudioNode) => {
-        play: (note: number) => {
-            release: () => void
-        }
-    },
+    }) => void,
 };
 
 const getLocal = (key: string): Object => {
@@ -32,25 +24,21 @@ const getLocal = (key: string): Object => {
 
 interface ChannelProps {
     audio: AudioContext,
-    setInputNode: (node: InputNode) => void
+    out: AudioNode,
+    commands$: Observable<Command>
 };
 
-export const Channel = ({ audio, setInputNode }: ChannelProps) => {
+export const Channel = ({ audio, out, commands$ }: ChannelProps) => {
     const [serialized] = useState(getLocal('ES1'));
 
-    const setInstrument = useCallback(
-		(node: InputNode) => {
-            setInputNode(node);
-
-            const serialized = node.getSerialized();
-			localStorage.setItem('ES1', JSON.stringify(serialized));
-		},
-		[setInputNode]
+    const setSerialized = useCallback(
+		serialized => localStorage.setItem('ES1', JSON.stringify(serialized)),
+		[]
 	);
 
     return (
         <>
-            <ES1 audio={audio} setNode={setInstrument} initial={serialized as any}></ES1>
+            <ES1 audio={audio} commands$={commands$} out={out} setSerialized={setSerialized} initial={serialized as any}></ES1>
         </>
     );
 };

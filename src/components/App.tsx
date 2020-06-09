@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Piano } from './Piano';
-import { Channel, InputNode } from './Channel';
+// import { Piano } from './Piano';
+import { Channel, Command } from './Channel';
 import { Display } from './Display';
+import { Midi } from './Midi';
+import { Subject } from 'rxjs';
 
 interface DemoCanvasWidgetProps {
 	color?: string;
@@ -63,27 +65,30 @@ const DemoCanvasWidget = (props: DemoCanvasWidgetProps) => (
 export const App = () => {
 	const [audio] = useState(new AudioContext());
 	const [analyser] = useState(audio.createAnalyser());
-	const [inputNode, setInputNode] = useState<InputNode>();
+	// const [inputNode, setInputNode] = useState<InputNode>();
 
 	useEffect(() => {
 		analyser.connect(audio.destination);
 	}, [audio, analyser]);
 
-	const playNote = useCallback(
-		(note: number, releasePromise: Promise<void>) => {
-			if(!inputNode) return;
+	// const playNote = useCallback(
+	// 	(note: number, releasePromise: Promise<void>) => {
+	// 		if(!inputNode) return;
 
-			const { release } = inputNode.connect(analyser).play(note);
+	// 		const { release } = inputNode.connect(analyser).play(note);
 
-			releasePromise.then(release);
-		},
-		[analyser, inputNode]
-	);
+	// 		releasePromise.then(release);
+	// 	},
+	// 	[analyser, inputNode]
+	// );
+
+	const [commands$] = useState<Subject<Command>>(new Subject<Command>());
 
 	return (
 		<DemoCanvasWidget>
-			<Piano audio={audio} playNote={playNote}></Piano>
-			<Channel audio={audio} setInputNode={setInputNode}></Channel>
+			{/* <Piano audio={audio} playNote={playNote}></Piano> */}
+			<Midi commands$={commands$}></Midi>
+			<Channel audio={audio} commands$={commands$} out={analyser}></Channel>
 			<Display analyser={analyser}></Display>
 		</DemoCanvasWidget>
 	);

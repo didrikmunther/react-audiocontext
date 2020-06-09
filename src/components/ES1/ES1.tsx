@@ -1,32 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
-import { InputNode } from '../Channel';
+import { Command, ConnectableNode } from '../Channel';
+import { Box } from '../style/Box';
+import { Notes } from '../../data/Notes';
+import { Observable } from 'rxjs';
 
 export type OscillatorMode = 'poly' | 'mono' | 'legato';
-
-const SynthElementStyled = styled.div`
-    margin: 15px;
-    padding: 15px;
-    border-radius: 3px;
-    background: rgba(150, 150, 150, .5);
-    display: inline-block;
-
-    h3 {
-        margin: 0 0 10px 0;
-        color: #ddd;
-    }
-
-    label {
-        > span {
-            display: block;
-            color: #eee;
-            padding: 5px;
-        }
-        > input, select {
-            margin-bottom: 15px;
-        }
-    }
-`;
 
 const useSlider = (initialValue: number, min: number = 0, max: number = 2) => {
     const [value, setValue] = useState<number>(initialValue);
@@ -46,9 +24,30 @@ const useSlider = (initialValue: number, min: number = 0, max: number = 2) => {
     };
 };
 
-interface ES1Props {
-    audio: AudioContext,
-    setNode: (node: InputNode) => void,
+// const usePoly = () => {
+//     return [
+//         (note: number) => {
+//             out.connect(node);
+//             osc.frequency.setValueAtTime(note, audio.currentTime);
+//             osc.frequency.value = note;
+//             osc.start();
+
+//             return {
+//                 release: () => {
+//                     console.log('ES1 releasing note', note);
+//                     setFrequencies(frequencies => frequencies.filter(v => v !== note));
+
+//                     env.gain.setValueAtTime(1, audio.currentTime);
+//                     env.gain.linearRampToValueAtTime(0, audio.currentTime + release);
+//                 }
+//             };
+//         }
+//     ];
+// };
+
+interface ES1Props extends ConnectableNode {
+    commands$: Observable<Command>,
+    out: AudioNode,
     initial: {
         mode?: string | OscillatorMode,
         form?: string | OscillatorType,
@@ -59,103 +58,66 @@ interface ES1Props {
     }
 };
 
-export const ES1 = ({ audio, setNode, initial }: ES1Props) => {
-    const [mode, setMode] = useState<OscillatorMode>((initial.mode ?? 'sine') as OscillatorMode);
+export const ES1 = ({ audio, setSerialized, initial, out, commands$ }: ES1Props) => {
+    const [mode, setMode] = useState<OscillatorMode>((initial.mode ?? 'poly') as OscillatorMode);
     const [form, setForm] = useState<OscillatorType>((initial.form ?? 'sine') as OscillatorType);
     const {value: release, bind: releaseBind} = useSlider(initial.release ?? .2);
     const {value: attack, bind: attackBind} = useSlider(initial.attack ?? .2);
     const {value: volume, bind: volumeBind} = useSlider(initial.volume ?? .2);
     const {value: glide, bind: glideBind} = useSlider(initial.glide ?? .2);
 
-    const [gains, setGains] = useState<GainNode[]>([]);
-    const [oscillators, setOscillators] = useState<OscillatorNode[]>([]);
-    const [frequencies, setFrequencies] = useState<number[]>([]);
+    // const [gains, setGains] = useState<GainNode[]>([]);
+    // const [oscillators, setOscillators] = useState<OscillatorNode[]>([]);
+    // const [frequencies, setFrequencies] = useState<number[]>([]);
 
     useEffect(() => {
-        setNode({
-            connect: (node: AudioNode) => {
-                const osc = audio.createOscillator();
-                osc.type = form;
+        const sub = commands$.subscribe(({ note, velocity }) => {
+            if(velocity <= 0) return;
 
-                const env = audio.createGain();
-                env.gain.cancelScheduledValues(audio.currentTime);
-                env.gain.setValueAtTime(0, audio.currentTime);
-                env.gain.linearRampToValueAtTime(1, audio.currentTime + attack);
-                
-                const out = audio.createGain();
-                out.gain.value = volume;
+            console.log(note, velocity);
 
-                osc.connect(env).connect(out);
+            const osc = audio.createOscillator();
+            osc.type = form;
 
-                return {
-                    play: (note: number) => {
-                        console.log('ES1 playing note', note);
+            const env = audio.createGain();
+            env.gain.cancelScheduledValues(audio.currentTime)
+                .setValueAtTime(0, audio.currentTime)
+                .linearRampToValueAtTime(1, audio.currentTime + attack);
+            
+            const gain = audio.createGain();
+            gain.gain.value = volume * velocity / 127;
 
-                        switch(mode) {
-                            case 'legato':
-                                if(oscillators.length >= 1 && frequencies.length >= 1) {
-                                    const osc = oscillators[oscillators.length - 1];
-                                    osc.frequency.linearRampToValueAtTime(note, audio.currentTime + glide);
-                                    setFrequencies(frequencies => [...frequencies, note]);
-                                    return {
-                                        release: () => {
-                                            setFrequencies(frequencies => {
-                                                if(frequencies[frequencies.length - 1] === note)
-                                                    osc.frequency.linearRampToValueAtTime(frequencies[frequencies.length - 2], audio.currentTime + glide);
-                                                return frequencies.filter(v => v !== note);
-                                            });
-                                        }
-                                    };
-                                }
-                                setOscillators(oscillators => [
-                                    ...oscillators,
-                                    osc
-                                ]);
-                                break;
-                            
-                            case 'mono':
-                                gains.forEach(v => {
-                                    v.gain.setValueAtTime(v.gain.value, audio.currentTime);
-                                    v.gain.linearRampToValueAtTime(0, audio.currentTime + .03)
-                                });
-                                setGains([out]);
-                                break;
+            // env.gain.setValueAtTime(1, audio.currentTime);
+            // env.gain.linearRampToValueAtTime(0, audio.currentTime + release);
 
-                            case 'poly':
-                            default:
-                                break;
-                        }
+            osc.connect(env).connect(gain).connect(out);
+            
+            const [toneName, frequency] = Object.entries(Notes)[note];
 
-                        setFrequencies(frequencies => [...frequencies, note]);
-                        out.connect(node);
-                        osc.frequency.setValueAtTime(note, audio.currentTime);
-                        osc.frequency.value = note;
-                        osc.start();
+            console.log('Playing frequency', toneName, frequency);
 
-                        return {
-                            release: () => {
-                                console.log('ES1 releasing note', note);
-                                setFrequencies(frequencies => frequencies.filter(v => v !== note));
-                                env.gain.setValueAtTime(1, audio.currentTime);
-                                env.gain.linearRampToValueAtTime(0, audio.currentTime + release);
-                            }
-                        };
-                    }
-                };
-            },
-            getSerialized: () => ({
-                mode,
-                form,
-                release,
-                attack,
-                volume
-            })
+            osc.frequency.setValueAtTime(frequency, audio.currentTime);
+            osc.frequency.value = frequency;
+            osc.start();
         });
-    }, [audio, setNode, form, release, attack, volume, oscillators, setOscillators, frequencies, setFrequencies, gains, setGains, mode, glide]);
+
+        return () => sub.unsubscribe();
+    }, [commands$, audio, form, release, attack, volume, mode, glide, out]);
+
+    useEffect(() => {
+        setSerialized({
+            mode,
+            form,
+            release,
+            attack,
+            volume,
+            glide
+        })
+    }, [setSerialized, mode, form, release, attack, volume, glide]);
 
     return (
         <>
-            <SynthElementStyled>
+            <Box>
                 <h3>Oscillator</h3>
                 {/* <h4>Frequencies: {JSON.stringify(frequencies)}</h4> */}
 
@@ -191,7 +153,7 @@ export const ES1 = ({ audio, setNode, initial }: ES1Props) => {
                     <span>Volume: {volume}</span>
                     <input {...volumeBind}></input>
                 </label>
-            </SynthElementStyled>
+            </Box>
         </>
     )
 };

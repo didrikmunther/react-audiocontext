@@ -4,17 +4,17 @@ export const Bindings: {
     [key: string]: number
 } = {
 
-    's': Notes.A3,
-    'd': Notes.Bb3,
-    'f': Notes.Db4,
-    'g': Notes.D4,
-    'h': Notes.E4,
-    'j': Notes.F4,
-    'k': Notes.G4,
-    'l': Notes.A4,
-    ';': Notes.Bb4,
-    '\'': Notes.Db5,
-    '\\': Notes.D5
+    // 's': Notes.A3,
+    // 'd': Notes.Bb3,
+    // 'f': Notes.Db4,
+    // 'g': Notes.D4,
+    // 'h': Notes.E4,
+    // 'j': Notes.F4,
+    // 'k': Notes.G4,
+    // 'l': Notes.A4,
+    // ';': Notes.Bb4,
+    // '\'': Notes.Db5,
+    // '\\': Notes.D5
 
     // 'a': Notes.C4,
     // 'w': Notes.Db4,
