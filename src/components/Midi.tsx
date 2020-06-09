@@ -32,8 +32,10 @@ export const Midi = ({ commands$ }: MidiProps) => {
     const [man, setMan] = useState<string>();
     const [name, setName] = useState<string>();
 
+    const hasAccess = access && access.inputs.size > 0;
+
     useEffect(() => {
-        if(!access)
+        if(!access || !hasAccess)
             return;
 
         access.onstatechange = e => {
@@ -46,7 +48,7 @@ export const Midi = ({ commands$ }: MidiProps) => {
                 const [command, note] = e.data;
                 const velocity = (e.data.length > 2) ? e.data[2] : 0;
 
-                // console.log(command, note, velocity);
+                console.log(command, note, velocity);
 
                 const noteOn = () => commands$.next({note, velocity});
                 const noteOff = () => commands$.next({note, velocity: 0});
@@ -65,9 +67,9 @@ export const Midi = ({ commands$ }: MidiProps) => {
                 }
             };
         }
-    }, [access, commands$]);
+    }, [access, hasAccess, commands$, setMan, setName]);
 
-    if(!error && !access)
+    if(!error && !hasAccess)
         return <></>;
 
     if(error)

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-// import { Piano } from './Piano';
 import { Channel, Command } from './Channel';
 import { Display } from './Display';
 import { Midi } from './Midi';
 import { Subject } from 'rxjs';
+import { Piano } from './Piano';
 
 interface DemoCanvasWidgetProps {
 	color?: string;
@@ -65,28 +65,16 @@ const DemoCanvasWidget = (props: DemoCanvasWidgetProps) => (
 export const App = () => {
 	const [audio] = useState(new AudioContext());
 	const [analyser] = useState(audio.createAnalyser());
-	// const [inputNode, setInputNode] = useState<InputNode>();
 
 	useEffect(() => {
 		analyser.connect(audio.destination);
 	}, [audio, analyser]);
 
-	// const playNote = useCallback(
-	// 	(note: number, releasePromise: Promise<void>) => {
-	// 		if(!inputNode) return;
-
-	// 		const { release } = inputNode.connect(analyser).play(note);
-
-	// 		releasePromise.then(release);
-	// 	},
-	// 	[analyser, inputNode]
-	// );
-
 	const [commands$] = useState<Subject<Command>>(new Subject<Command>());
 
 	return (
 		<DemoCanvasWidget>
-			{/* <Piano audio={audio} playNote={playNote}></Piano> */}
+			<Piano commands$={commands$}></Piano>
 			<Midi commands$={commands$}></Midi>
 			<Channel audio={audio} commands$={commands$} out={analyser}></Channel>
 			<Display analyser={analyser}></Display>

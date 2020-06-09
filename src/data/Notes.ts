@@ -175,5 +175,7 @@ export const Notes: {
     ...ob,
     [note + range]: A * Math.pow(2, (semitones + (multiplier * 12)) / 12),
 }), ob), {}))
+    .reverse()
     .filter(([k, v], i, a) => a.findIndex(([,j]) => j === v) === i)
-    .reduce((a, [k, v]) => ({...a, [k]: v}), {});;
+    .reverse()
+    .reduce((a, [k, v]) => ({...a, [k]: v}), {});

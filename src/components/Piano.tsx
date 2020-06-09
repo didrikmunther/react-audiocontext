@@ -1,15 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Bindings } from '../data/Bindings';
+import { Subject } from 'rxjs';
+import { Command } from './Channel';
 
 type PianoProps = {
-    audio: AudioContext,
-    playNote: (note: number, release: Promise<void>) => void
+    commands$: Subject<Command>
 };
 
-export const Piano = ({ audio, playNote }: PianoProps) => {
-    const [releasables, setReleasables] = useState<{
-        [note: number]: () => void
-    }>({});
+export const Piano = ({ commands$ }: PianoProps) => {
+    // const [releasables, setReleasables] = useState<{
+    //     [note: number]: () => void
+    // }>({});
 
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
@@ -18,25 +19,33 @@ export const Piano = ({ audio, playNote }: PianoProps) => {
             if(!note) return;
             console.log('Playing note', note);
 
-            playNote(note, new Promise(res => setReleasables({
-                ...releasables,
-                [note]: res
-            })));
+            commands$.next({
+                note,
+                velocity: 127
+            });
+
+            // playNote(note, new Promise(res => setReleasables({
+            //     ...releasables,
+            //     [note]: res
+            // })));
         };
 
         const onKeyUp = (e: KeyboardEvent) => {
             const note = Bindings[e.key.toLowerCase()];
             if(!note) return;
-            if(!releasables[note]) return;
 
             console.log('Releasing note', note);
-            releasables[note]();
 
-            setReleasables(
-                Object.entries(releasables)
-                    .filter(([k]) => +k !== note)
-                    .reduce((a, [k, v]) => ({...a, [k]: v}), {})
-            );
+            commands$.next({
+                note,
+                velocity: 0
+            });
+
+            // setReleasables(
+            //     Object.entries(releasables)
+            //         .filter(([k]) => +k !== note)
+            //         .reduce((a, [k, v]) => ({...a, [k]: v}), {})
+            // );
         };
 
         document.addEventListener('keydown', onKeyDown);
@@ -45,7 +54,7 @@ export const Piano = ({ audio, playNote }: PianoProps) => {
             document.removeEventListener('keydown', onKeyDown);
             document.removeEventListener('keyup', onKeyUp);
         }
-    }, [audio, playNote, releasables, setReleasables]);
+    }, [commands$]);
 
     return (
         <>

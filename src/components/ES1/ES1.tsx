@@ -66,15 +66,30 @@ export const ES1 = ({ audio, setSerialized, initial, out, commands$ }: ES1Props)
     const {value: volume, bind: volumeBind} = useSlider(initial.volume ?? .2);
     const {value: glide, bind: glideBind} = useSlider(initial.glide ?? .2);
 
+    const [playing] = useState<{
+        [note: number]: {
+            osc: OscillatorNode,
+            env: GainNode
+        }
+    }>({});
+
     // const [gains, setGains] = useState<GainNode[]>([]);
     // const [oscillators, setOscillators] = useState<OscillatorNode[]>([]);
     // const [frequencies, setFrequencies] = useState<number[]>([]);
 
     useEffect(() => {
         const sub = commands$.subscribe(({ note, velocity }) => {
-            if(velocity <= 0) return;
+            console.log('ES1 received command', note, velocity);
 
-            console.log(note, velocity);
+            if(velocity <= 0) {
+                const active = playing[note];
+                if(!active)
+                    return;
+
+                active.env.gain.cancelScheduledValues(audio.currentTime)
+                    .setTargetAtTime(active.env.gain.value, audio.currentTime, 0)
+                    .linearRampToValueAtTime(0, audio.currentTime + release);
+            }
 
             const osc = audio.createOscillator();
             osc.type = form;
@@ -85,10 +100,7 @@ export const ES1 = ({ audio, setSerialized, initial, out, commands$ }: ES1Props)
                 .linearRampToValueAtTime(1, audio.currentTime + attack);
             
             const gain = audio.createGain();
-            gain.gain.value = volume * velocity / 127;
-
-            // env.gain.setValueAtTime(1, audio.currentTime);
-            // env.gain.linearRampToValueAtTime(0, audio.currentTime + release);
+            gain.gain.setValueAtTime(volume * velocity / 127, audio.currentTime);
 
             osc.connect(env).connect(gain).connect(out);
             
@@ -99,10 +111,15 @@ export const ES1 = ({ audio, setSerialized, initial, out, commands$ }: ES1Props)
             osc.frequency.setValueAtTime(frequency, audio.currentTime);
             osc.frequency.value = frequency;
             osc.start();
+
+            playing[note] = {
+                osc,
+                env
+            };
         });
 
         return () => sub.unsubscribe();
-    }, [commands$, audio, form, release, attack, volume, mode, glide, out]);
+    }, [audio, commands$, playing, form, release, attack, volume, mode, glide, out]);
 
     useEffect(() => {
         setSerialized({
