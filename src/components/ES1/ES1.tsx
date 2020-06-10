@@ -73,7 +73,8 @@ export const ES1 = ({ audio, setSerialized, initial, out, commands$ }: ES1Props)
     const [playing] = useState<{
         [note: number]: {
             osc: OscillatorNode[],
-            env: GainNode
+            env: GainNode,
+            gain: GainNode
         }
     }>({});
 
@@ -94,11 +95,13 @@ export const ES1 = ({ audio, setSerialized, initial, out, commands$ }: ES1Props)
                     .setTargetAtTime(active.env.gain.value, audio.currentTime, 0)
                     .linearRampToValueAtTime(0, audio.currentTime + release);
 
+                setTimeout(() => {
+                    active.osc.forEach(v => v.stop(audio.currentTime));
+                    active.gain.disconnect(out);
+                }, release * 1e3);
+
                 return;
             }
-
-            // const osc = audio.createOscillator();
-            // osc.type = form;
 
             const env = audio.createGain();
             env.gain.cancelScheduledValues(audio.currentTime)
@@ -125,73 +128,73 @@ export const ES1 = ({ audio, setSerialized, initial, out, commands$ }: ES1Props)
 
             playing[note] = {
                 osc,
-                env
+                env,
+                gain
             };
         });
 
         return () => sub.unsubscribe();
     }, [audio, commands$, playing, form, release, attack, volume, mode, glide, out, voices, detune]);
 
-    useEffect(() => {
-        setSerialized({
-            mode,
-            form,
-            release,
-            attack,
-            volume,
-            glide,
-            voices,
-            detune
-        })
-    }, [setSerialized, mode, form, release, attack, volume, glide, voices, detune]);
+    const serialized = {
+        mode,
+        form,
+        release,
+        attack,
+        volume,
+        glide,
+        voices,
+        detune
+    };
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => setSerialized(serialized), Object.values(serialized));
 
     return (
-        <>
-            <Box>
-                <h3>Oscillator</h3>
-                {/* <h4>Frequencies: {JSON.stringify(frequencies)}</h4> */}
+        <Box>
+            <h3>Oscillator</h3>
+            {/* <h4>Frequencies: {JSON.stringify(frequencies)}</h4> */}
 
-                <label>
-                    <span>Mode <b>{mode}</b></span>
-                    <select value={mode} onChange={e => setMode(e.target.value as OscillatorMode)}>
-                        <option value="poly">Poly</option>
-                        <option value="mono">Mono</option>
-                        <option value="legato">Legato</option>
-                    </select>
-                </label>
-                <label>
-                    <span>Form <b>{form}</b></span>
-                    <select value={form} onChange={e => setForm(e.target.value as OscillatorType)}>
-                        <option value="sine">Sine</option>
-                        <option value="triangle">Triangle</option>
-                        <option value="square">Square</option>
-                    </select>
-                </label>
-                <label>
-                    <span>Glide: {glide}</span>
-                    <input {...glideBind}></input>
-                </label>
-                <label>
-                    <span>Release: {release}</span>
-                    <input {...releaseBind}></input>
-                </label>
-                <label>
-                    <span>Attack: {attack}</span>
-                    <input {...attackBind}></input>
-                </label>
-                <label>
-                    <span>Volume: {volume}</span>
-                    <input {...volumeBind} max={1} step={.0001}></input>
-                </label>
-                <label>
-                    <span>Voices: {voices}</span>
-                    <input {...voicesBind} step={1} min={1} max={16}></input>
-                </label>
-                <label>
-                    <span>Detune: {detune}</span>
-                    <input {...detuneBind}></input>
-                </label>
-            </Box>
-        </>
+            <label>
+                <span>Mode <b>{mode}</b></span>
+                <select value={mode} onChange={e => setMode(e.target.value as OscillatorMode)}>
+                    <option value="poly">Poly</option>
+                    <option value="mono">Mono</option>
+                    <option value="legato">Legato</option>
+                </select>
+            </label>
+            <label>
+                <span>Form <b>{form}</b></span>
+                <select value={form} onChange={e => setForm(e.target.value as OscillatorType)}>
+                    <option value="sine">Sine</option>
+                    <option value="triangle">Triangle</option>
+                    <option value="square">Square</option>
+                </select>
+            </label>
+            <label>
+                <span>Glide: {glide}</span>
+                <input {...glideBind}></input>
+            </label>
+            <label>
+                <span>Release: {release}</span>
+                <input {...releaseBind}></input>
+            </label>
+            <label>
+                <span>Attack: {attack}</span>
+                <input {...attackBind}></input>
+            </label>
+            <label>
+                <span>Volume: {volume}</span>
+                <input {...volumeBind} max={1} step={.0001}></input>
+            </label>
+            <label>
+                <span>Voices: {voices}</span>
+                <input {...voicesBind} step={1} min={1} max={16}></input>
+            </label>
+            <label>
+                <span>Detune: {detune}</span>
+                <input {...detuneBind}></input>
+            </label>
+        </Box>
     )
 };
