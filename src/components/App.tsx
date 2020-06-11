@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Channel, Command } from './Channel';
-import { Display } from './Display';
+import { FrequencyDisplay, WaveDisplay } from './Display';
 import { Midi } from './Midi';
 import { Subject } from 'rxjs';
 import { Piano } from './Piano';
@@ -77,7 +77,8 @@ export const App = () => {
 			<Piano commands$={commands$}></Piano>
 			<Midi commands$={commands$}></Midi>
 			<Channel audio={audio} commands$={commands$} out={analyser}></Channel>
-			<Display analyser={analyser}></Display>
+			<FrequencyDisplay audio={audio} out={analyser}></FrequencyDisplay>
+			<WaveDisplay audio={audio} out={analyser}></WaveDisplay>
 		</DemoCanvasWidget>
 	);
 };

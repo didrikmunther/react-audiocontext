@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Command, ConnectableNode } from '../Channel';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ConnectableNode } from '../Channel';
 import { Box } from '../style/Box';
 import { Notes } from '../../data/Notes';
+import { useKnob } from '../Knob';
 import { Observable } from 'rxjs';
-import { Knob } from '../Knob';
-import styled from 'styled-components';
+import { Row } from '../style/Row';
 
 export type OscillatorMode = 'poly' | 'mono' | 'legato';
 
@@ -25,16 +25,6 @@ export type OscillatorMode = 'poly' | 'mono' | 'legato';
 //         }
 //     };
 // };
-
-const useKnob = (initialValue: number, options: {
-    min?: number,
-    max?: number,
-    step?: number
-} = {}): [number, JSX.Element] => {
-    const [value, setValue] = useState(initialValue);
-    const knob = <Knob initialValue={value} onChange={v => setValue(v)} min={options.min ?? 0} max={options.max ?? 1} step={options.step ?? .01}></Knob>
-    return [value, knob];
-};
 
 // const usePoly = () => {
 //     return [
@@ -57,13 +47,16 @@ const useKnob = (initialValue: number, options: {
 //     ];
 // };
 
-const Row = styled.div`
-    display: flex;
-`;
+interface Playing {
+    playing: boolean,
+    velocity: number,
+    osc: OscillatorNode[],
+    env: GainNode,
+    gain: GainNode,
+    // pan: StereoPannerNode,
+};
 
 interface ES1Props extends ConnectableNode {
-    commands$: Observable<Command>,
-    out: AudioNode,
     initial: {
         mode?: string | OscillatorMode,
         form?: string | OscillatorType,
@@ -76,7 +69,9 @@ interface ES1Props extends ConnectableNode {
     }
 };
 
-export const ES1 = ({ audio, setSerialized, initial, out, commands$ }: ES1Props) => {
+export const ES1 = ({ audio, setSerialized, initial, out, commands$ = new Observable() }: ES1Props) => {
+    const [finalGain] = useState<GainNode>(new GainNode(audio));
+
     const [mode, setMode] = useState<OscillatorMode>((initial.mode ?? 'poly') as OscillatorMode);
     const [form, setForm] = useState<OscillatorType>((initial.form ?? 'sine') as OscillatorType);
 
@@ -88,16 +83,17 @@ export const ES1 = ({ audio, setSerialized, initial, out, commands$ }: ES1Props)
     const [detune, detuneKnob] = useKnob(initial.detune ?? 0);
 
     const [playing] = useState<{
-        [note: number]: {
-            osc: OscillatorNode[],
-            env: GainNode,
-            gain: GainNode
-        }
+        [note: number]: Playing
     }>({});
 
     // const [gains, setGains] = useState<GainNode[]>([]);
     // const [oscillators, setOscillators] = useState<OscillatorNode[]>([]);
     // const [frequencies, setFrequencies] = useState<number[]>([]);
+
+    useEffect(() => {
+        finalGain.connect(out);
+        finalGain.gain.setValueAtTime(1, audio.currentTime);
+    }, [audio, out, finalGain]);
 
     useEffect(() => {
         const sub = commands$.subscribe(({ note, velocity }) => {
@@ -108,13 +104,15 @@ export const ES1 = ({ audio, setSerialized, initial, out, commands$ }: ES1Props)
                 if(!active)
                     return;
 
+                active.playing = false;
+
                 active.env.gain.cancelScheduledValues(audio.currentTime)
                     .setTargetAtTime(active.env.gain.value, audio.currentTime, 0)
                     .linearRampToValueAtTime(0, audio.currentTime + release);
 
                 setTimeout(() => {
                     active.osc.forEach(v => v.stop(audio.currentTime));
-                    active.gain.disconnect(out);
+                    active.gain.disconnect(finalGain);
                 }, release * 1e3);
 
                 return;
@@ -131,8 +129,11 @@ export const ES1 = ({ audio, setSerialized, initial, out, commands$ }: ES1Props)
             const [, frequency] = Object.entries(Notes)[note];
 
             const osc = [...Array(voices)].map((v, i, a) => {
+                const pan = audio.createStereoPanner();
+                pan.pan.setValueAtTime(2 * i / a.length - 1, audio.currentTime);
+
                 const osc = audio.createOscillator();
-                osc.connect(env).connect(gain).connect(out);
+                osc.connect(env).connect(pan).connect(gain).connect(finalGain);
 
                 osc.type = form;
                 osc.frequency.setValueAtTime(frequency, audio.currentTime);
@@ -144,6 +145,8 @@ export const ES1 = ({ audio, setSerialized, initial, out, commands$ }: ES1Props)
             osc.forEach(v => v.start());
 
             playing[note] = {
+                playing: true,
+                velocity,
                 osc,
                 env,
                 gain
@@ -151,7 +154,22 @@ export const ES1 = ({ audio, setSerialized, initial, out, commands$ }: ES1Props)
         });
 
         return () => sub.unsubscribe();
-    }, [audio, commands$, playing, form, release, attack, volume, mode, glide, out, voices, detune]);
+    }, [audio, commands$, playing, form, release, attack, volume, mode, glide, finalGain, voices, detune]);
+
+    const everyPlaying = useCallback(
+        (f: (v: Playing) => void) => Object.values(playing)
+            .filter(v => v.playing)
+            .forEach(f),
+        [playing]
+    );
+
+    useEffect(() => {
+        everyPlaying(v => v.gain.gain.setValueAtTime(volume * v.velocity / 127, audio.currentTime));
+    }, [audio, everyPlaying, volume]);
+
+    useEffect(() => {
+        everyPlaying(v => v.osc.forEach((osc, i, a) => osc.detune.setValueAtTime(detune * ( a.length / 2 - i ), audio.currentTime)));
+    }, [audio, everyPlaying, detune]);
 
     const serialized = {
         mode,
@@ -165,29 +183,31 @@ export const ES1 = ({ audio, setSerialized, initial, out, commands$ }: ES1Props)
     };
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => setSerialized(serialized), Object.values(serialized));
+    useEffect(() => setSerialized(() => serialized), Object.values(serialized));
 
     return (
         <Box>
             <h3>Oscillator</h3>
             {/* <h4>Frequencies: {JSON.stringify(frequencies)}</h4> */}
 
-            <label>
-                <span>Mode <b>{mode}</b></span>
-                <select value={mode} onChange={e => setMode(e.target.value as OscillatorMode)}>
-                    <option value="poly">Poly</option>
-                    <option value="mono">Mono</option>
-                    <option value="legato">Legato</option>
-                </select>
-            </label>
-            <label>
-                <span>Form <b>{form}</b></span>
-                <select value={form} onChange={e => setForm(e.target.value as OscillatorType)}>
-                    <option value="sine">Sine</option>
-                    <option value="triangle">Triangle</option>
-                    <option value="square">Square</option>
-                </select>
-            </label>
+            <Row>
+                <label>
+                    <span>Mode <b>{mode}</b></span>
+                    <select value={mode} onChange={e => setMode(e.target.value as OscillatorMode)}>
+                        <option value="poly">Poly</option>
+                        <option value="mono">Mono</option>
+                        <option value="legato">Legato</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Form <b>{form}</b></span>
+                    <select value={form} onChange={e => setForm(e.target.value as OscillatorType)}>
+                        <option value="sine">Sine</option>
+                        <option value="triangle">Triangle</option>
+                        <option value="square">Square</option>
+                    </select>
+                </label>
+            </Row>
             <label>
                 <span>Volume: {volume}</span>
                 {volumeKnob}

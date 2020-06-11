@@ -3,6 +3,16 @@ import styled from 'styled-components';
 
 const range = 220;
 
+export const useKnob = (initialValue: number, options: {
+    min?: number,
+    max?: number,
+    step?: number
+} = {}): [number, JSX.Element] => {
+    const [value, setValue] = useState(initialValue);
+    const knob = <Knob initialValue={value} onChange={v => setValue(v)} min={options.min ?? 0} max={options.max ?? 1} step={options.step ?? .01}></Knob>
+    return [value, knob];
+};
+
 interface KnobProps {
     initialValue: number,
     onChange: (value: number) => void,
