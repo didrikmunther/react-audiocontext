@@ -3,25 +3,37 @@ import { Command, ConnectableNode } from '../Channel';
 import { Box } from '../style/Box';
 import { Notes } from '../../data/Notes';
 import { Observable } from 'rxjs';
+import { Knob } from '../Knob';
+import styled from 'styled-components';
 
 export type OscillatorMode = 'poly' | 'mono' | 'legato';
 
-const useSlider = (initialValue: number, min: number = 0, max: number = 2, step: number = .01) => {
-    const [value, setValue] = useState<number>(initialValue);
+// const useSlider = (initialValue: number, min: number = 0, max: number = 2, step: number = .01) => {
+//     const [value, setValue] = useState<number>(initialValue);
 
-    return {
-        value,
-        setValue,
-        reset: () => setValue(initialValue),
-        bind: {
-            value,
-            onChange: (e: React.ChangeEvent<HTMLInputElement>) => setValue(+(e.target as HTMLInputElement)?.value),
-            step,
-            type: 'range',
-            min,
-            max,
-        }
-    };
+//     return {
+//         value,
+//         setValue,
+//         reset: () => setValue(initialValue),
+//         bind: {
+//             value,
+//             onChange: (e: React.ChangeEvent<HTMLInputElement>) => setValue(+(e.target as HTMLInputElement)?.value),
+//             step,
+//             type: 'range',
+//             min,
+//             max,
+//         }
+//     };
+// };
+
+const useKnob = (initialValue: number, options: {
+    min?: number,
+    max?: number,
+    step?: number
+} = {}): [number, JSX.Element] => {
+    const [value, setValue] = useState(initialValue);
+    const knob = <Knob initialValue={value} onChange={v => setValue(v)} min={options.min ?? 0} max={options.max ?? 1} step={options.step ?? .01}></Knob>
+    return [value, knob];
 };
 
 // const usePoly = () => {
@@ -45,6 +57,10 @@ const useSlider = (initialValue: number, min: number = 0, max: number = 2, step:
 //     ];
 // };
 
+const Row = styled.div`
+    display: flex;
+`;
+
 interface ES1Props extends ConnectableNode {
     commands$: Observable<Command>,
     out: AudioNode,
@@ -63,12 +79,13 @@ interface ES1Props extends ConnectableNode {
 export const ES1 = ({ audio, setSerialized, initial, out, commands$ }: ES1Props) => {
     const [mode, setMode] = useState<OscillatorMode>((initial.mode ?? 'poly') as OscillatorMode);
     const [form, setForm] = useState<OscillatorType>((initial.form ?? 'sine') as OscillatorType);
-    const {value: release, bind: releaseBind} = useSlider(initial.release ?? .2);
-    const {value: attack, bind: attackBind} = useSlider(initial.attack ?? .2);
-    const {value: volume, bind: volumeBind} = useSlider(initial.volume ?? .2);
-    const {value: glide, bind: glideBind} = useSlider(initial.glide ?? .2);
-    const {value: voices, bind: voicesBind} = useSlider(initial.voices ?? 1);
-    const {value: detune, bind: detuneBind} = useSlider(initial.detune ?? 0);
+
+    const [release, releaseKnob] = useKnob(initial.release ?? .2, { max: 5 });
+    const [attack, attackKnob] = useKnob(initial.attack ?? .2, { max: 5 });
+    const [volume, volumeKnob] = useKnob(initial.volume ?? .2);
+    const [glide, glideKnob] = useKnob(initial.glide ?? .2, { max: 5 });
+    const [voices, voicesKnob] = useKnob(initial.voices ?? 1, { min: 1, max: 16, step: 1 });
+    const [detune, detuneKnob] = useKnob(initial.detune ?? 0);
 
     const [playing] = useState<{
         [note: number]: {
@@ -172,28 +189,32 @@ export const ES1 = ({ audio, setSerialized, initial, out, commands$ }: ES1Props)
                 </select>
             </label>
             <label>
-                <span>Glide: {glide}</span>
-                <input {...glideBind}></input>
-            </label>
-            <label>
-                <span>Release: {release}</span>
-                <input {...releaseBind}></input>
-            </label>
-            <label>
-                <span>Attack: {attack}</span>
-                <input {...attackBind}></input>
-            </label>
-            <label>
                 <span>Volume: {volume}</span>
-                <input {...volumeBind} max={1} step={.0001}></input>
+                {volumeKnob}
             </label>
+            <Row>
+                <label>
+                    <span>Release: {release}</span>
+                    {releaseKnob}
+                </label>
+                <label>
+                    <span>Attack: {attack}</span>
+                    {attackKnob}
+                </label>
+            </Row>
+            <Row>
+                <label>
+                    <span>Voices: {voices}</span>
+                    {voicesKnob}
+                </label>
+                <label>
+                    <span>Detune: {detune}</span>
+                    {detuneKnob}
+                </label>
+            </Row>
             <label>
-                <span>Voices: {voices}</span>
-                <input {...voicesBind} step={1} min={1} max={16}></input>
-            </label>
-            <label>
-                <span>Detune: {detune}</span>
-                <input {...detuneBind}></input>
+                <span>Glide: {glide}</span>
+                {glideKnob}
             </label>
         </Box>
     )
