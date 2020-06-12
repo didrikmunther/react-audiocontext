@@ -62,12 +62,27 @@ const DemoCanvasWidget = (props: DemoCanvasWidgetProps) => (
 	</Container>
 );
 
+const StorageVersion = '1.3';
+const StorageVersionKey = 'STORAGE_VERSION';
+
 export const App = () => {
 	const [audio] = useState(new AudioContext());
 	const [analyser] = useState(audio.createAnalyser());
 
 	useEffect(() => {
+		const version = localStorage.getItem(StorageVersionKey);
+		if(version !== StorageVersion) {
+			console.log(`${version} != ${StorageVersion}, clearing localStorage`);
+			localStorage.clear();
+		}
+
+		localStorage.setItem(StorageVersionKey, StorageVersion);
+	}, []);
+
+	useEffect(() => {
 		analyser.connect(audio.destination);
+
+		return () => analyser.disconnect(audio.destination);
 	}, [audio, analyser]);
 
 	const [commands$] = useState<Subject<Command>>(new Subject<Command>());

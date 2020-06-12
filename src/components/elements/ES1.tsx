@@ -69,7 +69,7 @@ interface ES1Props extends ConnectableNode {
     }
 };
 
-export const ES1 = ({ audio, setSerialized, initial, out, commands$ = new Observable() }: ES1Props) => {
+export const ES1 = ({ audio, serialized$, initial, out, commands$ = new Observable() }: ES1Props) => {
     const [finalGain] = useState<GainNode>(new GainNode(audio));
 
     const [mode, setMode] = useState<OscillatorMode>((initial.mode ?? 'poly') as OscillatorMode);
@@ -171,7 +171,7 @@ export const ES1 = ({ audio, setSerialized, initial, out, commands$ = new Observ
         everyPlaying(v => v.osc.forEach((osc, i, a) => osc.detune.setValueAtTime(detune * ( a.length / 2 - i ), audio.currentTime)));
     }, [audio, everyPlaying, detune]);
 
-    const serialized = {
+    const serializedData = {
         mode,
         form,
         release,
@@ -183,7 +183,7 @@ export const ES1 = ({ audio, setSerialized, initial, out, commands$ = new Observ
     };
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => setSerialized(() => serialized), Object.values(serialized));
+    useEffect(() => serialized$.next(serializedData), Object.values(serializedData));
 
     return (
         <Box>
