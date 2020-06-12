@@ -66,8 +66,6 @@ enum ActionType {
 };
 
 const serializeReducer = (state: SerializedChannel, action: { type: ActionType, id: number, payload: any }) => {
-    console.log(action);
-
     switch(action.type) {
         case ActionType.CHANGE_SETTINGS: {
             const find = state.vsts.findIndex(v => v.id === action.id);
@@ -88,7 +86,7 @@ const serializeReducer = (state: SerializedChannel, action: { type: ActionType, 
         }
 
         default:
-            return {...state};
+            return state;
     }
 };
 
@@ -135,7 +133,6 @@ export const Channel = ({ audio, out, commands$ }: ChannelProps) => {
             setFirstTime(false);
             return;
         }
-        console.log('localStorage');
         localStorage.setItem(SERIALIZED_KEY, JSON.stringify(serialized));
     }, [firstTime, serialized]);
 
@@ -148,10 +145,16 @@ export const Channel = ({ audio, out, commands$ }: ChannelProps) => {
                 const Element = Elements[v.name];
                 const node = audio.createGain();
 
-                console.log(v.settings);
-
                 const serialized$ = new BehaviorSubject<VSTSettings>(v.settings);
-                const element = <Element key={i} audio={audio} commands$={commands$} input={prevNode} out={node} initial={v.settings} serialized$={serialized$} />;
+                const element = <Element
+                    key={i}
+                    audio={audio}
+                    commands$={commands$}
+                    input={prevNode}
+                    out={node}
+                    initial={v.settings}
+                    serialized$={serialized$} />;
+
                 prevNode = node;
 
                 return {
@@ -171,7 +174,6 @@ export const Channel = ({ audio, out, commands$ }: ChannelProps) => {
 
         const sub = merge(...vsts.map(v => v.serialized$))
             .subscribe(v => {
-                console.log('Saving!', v);
                 dispatch({
                     type: ActionType.CHANGE_SETTINGS,
                     payload: v.settings,
