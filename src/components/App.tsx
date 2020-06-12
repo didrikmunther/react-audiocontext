@@ -5,6 +5,7 @@ import { FrequencyDisplay, WaveDisplay } from './Display';
 import { Midi } from './Midi';
 import { Subject } from 'rxjs';
 import { Piano } from './Piano';
+import { Column } from './style/Geometry';
 
 interface DemoCanvasWidgetProps {
 	color?: string;
@@ -92,8 +93,10 @@ export const App = () => {
 			<Piano commands$={commands$}></Piano>
 			<Midi commands$={commands$}></Midi>
 			<Channel audio={audio} commands$={commands$} out={analyser}></Channel>
-			<FrequencyDisplay audio={audio} out={analyser}></FrequencyDisplay>
-			<WaveDisplay audio={audio} out={analyser}></WaveDisplay>
+			<Column>
+				<FrequencyDisplay audio={audio} out={analyser}></FrequencyDisplay>
+				<WaveDisplay audio={audio} out={analyser}></WaveDisplay>
+			</Column>
 		</DemoCanvasWidget>
 	);
 };

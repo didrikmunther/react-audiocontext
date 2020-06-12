@@ -4,7 +4,7 @@ import { Box } from '../style/Box';
 import { Notes } from '../../data/Notes';
 import { useKnob } from '../Knob';
 import { Observable } from 'rxjs';
-import { Row } from '../style/Row';
+import { Row } from '../style/Geometry';
 
 export type OscillatorMode = 'poly' | 'mono' | 'legato';
 

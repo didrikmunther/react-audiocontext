@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box } from '../style/Box';
 import { ConnectableNode, tryTo } from '../Channel';
 import { useKnob } from '../Knob';
-import { Row } from '../style/Row';
+import { Row } from '../style/Geometry';
 
 interface CompressorProps extends ConnectableNode {
 

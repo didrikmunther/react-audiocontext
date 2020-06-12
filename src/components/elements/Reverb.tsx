@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ConnectableNode, tryTo } from '../Channel';
 import { Box } from '../style/Box';
-import { Row } from '../style/Row';
+import { Row } from '../style/Geometry';
 
 interface ReverbProps extends ConnectableNode {
     initial: {

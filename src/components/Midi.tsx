@@ -31,19 +31,36 @@ export const Midi = ({ commands$ }: MidiProps) => {
     const [access, error] = useMidiAccess();
     const [man, setMan] = useState<string>();
     const [name, setName] = useState<string>();
+    const [interfaces, setInterfaces] = useState<WebMidi.MIDIInput[]>([]);
 
-    const hasAccess = access && access.inputs.size > 0;
+    // const hasAccess = access && access.inputs.size > 0;
 
     useEffect(() => {
-        if(!access || !hasAccess)
-            return;
+        if(!access) return;
 
-        access.onstatechange = e => {
-            setMan(e.port.manufacturer);
-            setName(e.port.name);
+        const update = () => {
+            let elements = [];
+            for(let input of access.inputs.values()) {
+                elements.push(input);
+            }
+
+            setInterfaces(elements);
         };
 
-        for(let input of access.inputs.values()) {
+        access.onstatechange = e => {
+            console.log(e);
+
+            setMan(e.port.manufacturer);
+            setName(e.port.name);
+
+            update();
+        };
+
+        update();
+    }, [access, setMan, setName, setInterfaces]);
+
+    useEffect(() => {
+        interfaces.forEach(input => {
             input.onmidimessage = e => {
                 const [command, note] = e.data;
                 const velocity = (e.data.length > 2) ? e.data[2] : 0;
@@ -66,10 +83,10 @@ export const Midi = ({ commands$ }: MidiProps) => {
                         break;
                 }
             };
-        }
-    }, [access, hasAccess, commands$, setMan, setName]);
+        });
+    }, [commands$, interfaces]);
 
-    if(!error && !hasAccess)
+    if(!error && interfaces.length <= 0)
         return <></>;
 
     if(error)
