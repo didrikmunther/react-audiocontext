@@ -11,7 +11,7 @@ const CompressorReductionStyled = styled.div`
 `;
 
 interface CompressorReductionProps {
-    compressor: DynamicsCompressorNode
+    compressor?: DynamicsCompressorNode
 }
 
 const CompressorReduction = ({ compressor }: CompressorReductionProps) => {
@@ -19,12 +19,15 @@ const CompressorReduction = ({ compressor }: CompressorReductionProps) => {
 
     useEffect(() => {
         if(!canvasRef.current) return;
-        const { width, height } = canvasRef.current;
 
+        const { width, height } = canvasRef.current;
         const ctx = canvasRef.current.getContext('2d');
         if(!ctx) return;
 
+        ctx.clearRect(0, 0, width, height);
         ctx.font = "30px Arial";
+
+        if(!compressor) return;
 
         let play: boolean = true;
 
@@ -37,8 +40,6 @@ const CompressorReduction = ({ compressor }: CompressorReductionProps) => {
             const bar = compressor.reduction / -60;
             ctx.fillStyle = 'rgb(' + (255 * bar + 50) + ',50,50)';
             ctx.fillRect(0, 0, width * bar, height);
-
-            console.log(compressor.reduction);
         };
 
         render();
@@ -120,7 +121,7 @@ export const Compressor = ({ audio, input, out, initial, serialized$ }: Compress
             <Row>
                 <h3>Compressor</h3>
                 <input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} />
-                <CompressorReduction compressor={compressor} />
+                <CompressorReduction compressor={enabled ? compressor : undefined} />
             </Row>
 
             <Row>
