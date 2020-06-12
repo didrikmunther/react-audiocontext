@@ -3,6 +3,7 @@ import { ES1 } from './elements/ES1';
 import { Observable, BehaviorSubject, merge } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Compressor } from './elements/Compressor';
+import { Reverb } from './elements/Reverb';
 
 export type Command = {
     note: number,
@@ -58,7 +59,8 @@ const Elements: {
     [id: string]: (props: ConnectableNode) => JSX.Element
 } = {
     'ES1': ES1,
-    'Compressor': Compressor
+    'Compressor': Compressor,
+    'Reverb': Reverb
 };
 
 enum ActionType {
@@ -100,6 +102,11 @@ const initialSerialized: SerializedChannel = {
         id: 1,
         pos: 1,
         name: 'Compressor',
+        settings: {}
+    },{
+        id: 2,
+        pos: 2,
+        name: 'Reverb',
         settings: {}
     }]
 };
