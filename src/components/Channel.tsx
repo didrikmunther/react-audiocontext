@@ -10,10 +10,6 @@ export type Command = {
     velocity: number
 }
 
-type SerializeFunction = () => {
-    [key: string]: any
-};
-
 export interface ConnectableNode {
     audio: AudioContext,
     input?: AudioNode | undefined,
@@ -47,12 +43,6 @@ const getLocal = <T extends Object>(key: string): T | undefined => {
     } catch(e) {
         return undefined;
     }
-};
-
-interface ChannelProps {
-    audio: AudioContext,
-    out: AudioNode,
-    commands$: Observable<Command>
 };
 
 const Elements: {
@@ -118,6 +108,18 @@ type VST = {
     serialized$: Observable<SerializedVST>,
     node: AudioNode
 }[];
+
+export const tryTo = (f: Function) => {
+    try {
+        f()
+    } catch(e) {}
+};
+
+interface ChannelProps {
+    audio: AudioContext,
+    out: AudioNode,
+    commands$: Observable<Command>
+};
 
 export const Channel = ({ audio, out, commands$ }: ChannelProps) => {
     const [vsts, setVsts] = useState<VST>([]);

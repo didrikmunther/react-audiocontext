@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ConnectableNode } from '../Channel';
+import { ConnectableNode, tryTo } from '../Channel';
 import { Box } from '../style/Box';
 import { Row } from '../style/Row';
 
 interface ReverbProps extends ConnectableNode {
     initial: {
+        enabled?: boolean,
         impulse?: string
     }
 }
@@ -51,6 +52,8 @@ const Impulses = [
 ].map(v => v.slice(0, v.length - 4))
 
 export const Reverb = ({ audio, input, out, serialized$, initial }: ReverbProps) => {
+    const [enabled, setEnabled] = useState<boolean>(initial.enabled ?? true);
+
     const [convolver] = useState<ConvolverNode>(new ConvolverNode(audio));
     const [impulse, setImpulse] = useState<string>(initial.impulse ?? Impulses[0]);
     const [currentSound, setCurrentSound] = useState<ArrayBuffer>();
@@ -66,10 +69,20 @@ export const Reverb = ({ audio, input, out, serialized$, initial }: ReverbProps)
     }, [audio, impulse, convolver]);
 
     useEffect(() => {
-        input?.connect(convolver).connect(out);
-    }, [input, convolver, out]);
+        if(enabled)
+            input?.connect(convolver).connect(out);
+        else
+            input?.connect(out);
+
+        return () => [
+            () => input?.disconnect(out),
+            () => input?.disconnect(convolver),
+            () => convolver.disconnect(out)
+        ].forEach(tryTo);
+    }, [enabled, input, convolver, out]);
 
     const serializedData = {
+        enabled,
         impulse
     };
 
@@ -90,7 +103,10 @@ export const Reverb = ({ audio, input, out, serialized$, initial }: ReverbProps)
 
     return (
         <Box>
-            <h3>Reverb</h3>
+            <Row>
+                <h3>Reverb</h3>
+                <input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} />
+            </Row>
 
             <audio ref={player} style={{display: 'none'}}></audio>
 

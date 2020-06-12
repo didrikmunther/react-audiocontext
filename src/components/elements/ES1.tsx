@@ -130,7 +130,8 @@ export const ES1 = ({ audio, serialized$, initial, out, commands$ = new Observab
 
             const osc = [...Array(voices)].map((v, i, a) => {
                 const pan = audio.createStereoPanner();
-                pan.pan.setValueAtTime(2 * i / a.length - 1, audio.currentTime);
+                if(a.length >= 2)
+                    pan.pan.setValueAtTime(2 * i / a.length - 1, audio.currentTime);
 
                 const osc = audio.createOscillator();
                 osc.connect(env).connect(pan).connect(gain).connect(finalGain);

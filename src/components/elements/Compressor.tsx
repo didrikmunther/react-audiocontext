@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box } from '../style/Box';
-import { ConnectableNode } from '../Channel';
+import { ConnectableNode, tryTo } from '../Channel';
 import { useKnob } from '../Knob';
 import { Row } from '../style/Row';
 
@@ -9,6 +9,8 @@ interface CompressorProps extends ConnectableNode {
 };
 
 export const Compressor = ({ audio, input, out, initial, serialized$ }: CompressorProps) => {
+    const [enabled, setEnabled] = useState<boolean>(initial.enabled ?? true);
+
     const [compressor] = useState<DynamicsCompressorNode>(new DynamicsCompressorNode(audio));
 
     const [threshold, thresholdKnob] = useKnob(initial.threshold ?? -50, { min: -100, max: 0 });
@@ -18,8 +20,17 @@ export const Compressor = ({ audio, input, out, initial, serialized$ }: Compress
     const [release, releaseKnob] = useKnob(initial.release ?? .25, {min: .01});
 
     useEffect(() => {
-        input?.connect(compressor).connect(out);
-    }, [input, out, compressor]);
+        if(enabled)
+            input?.connect(compressor).connect(out);
+        else
+            input?.connect(out);
+
+        return () => [
+            () => input?.disconnect(compressor),
+            () => input?.disconnect(out),
+            () => compressor.disconnect(out)
+        ].forEach(tryTo);
+    }, [input, out, compressor, enabled]);
 
     useEffect(() => {
         compressor.threshold.setValueAtTime(threshold, audio.currentTime);
@@ -30,6 +41,7 @@ export const Compressor = ({ audio, input, out, initial, serialized$ }: Compress
     }, [audio, compressor, threshold, knee, ratio, attack, release]);
 
     const serializedData = {
+        enabled,
         threshold,
         knee,
         ratio,
@@ -42,7 +54,10 @@ export const Compressor = ({ audio, input, out, initial, serialized$ }: Compress
 
     return (
         <Box>
-            <h3>Compressor</h3>
+            <Row>
+                <h3>Compressor</h3>
+                <input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} />
+            </Row>
 
             <Row>
                 <label>
