@@ -8,8 +8,8 @@ export const Box = styled.div`
     display: inline-block;
     color: #ddd;
 
-    h3 {
-        margin: 0 0 10px 0;
+    h1, h2, h3 {
+        margin: 0;
     }
 
     label {

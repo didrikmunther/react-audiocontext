@@ -1,11 +1,74 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box } from '../style/Box';
 import { ConnectableNode, tryTo } from '../Channel';
 import { useKnob } from '../Knob';
 import { Row } from '../style/Geometry';
+import styled from 'styled-components';
+
+const CompressorReductionStyled = styled.div`
+    display: flex;
+    align-items: center;
+`;
+
+interface CompressorReductionProps {
+    compressor: DynamicsCompressorNode
+}
+
+const CompressorReduction = ({ compressor }: CompressorReductionProps) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+
+    useEffect(() => {
+        if(!canvasRef.current) return;
+        const { width, height } = canvasRef.current;
+
+        const ctx = canvasRef.current.getContext('2d');
+        if(!ctx) return;
+
+        ctx.font = "30px Arial";
+
+        let play: boolean = true;
+
+        const render = () => {
+            if(!play) return;
+            requestAnimationFrame(render);
+
+            ctx.clearRect(0, 0, width, height);
+
+            const bar = compressor.reduction / -60;
+            ctx.fillStyle = 'rgb(' + (255 * bar + 50) + ',50,50)';
+            ctx.fillRect(0, 0, width * bar, height);
+
+            console.log(compressor.reduction);
+        };
+
+        render();
+
+        return () => {
+            play = false;
+        };
+    }, [compressor, canvasRef]);
+
+    const canvasStyle = {
+        width: 100,
+        height: 10
+    };
+
+    return (
+        <CompressorReductionStyled>
+            <canvas ref={canvasRef} style={canvasStyle}></canvas>
+        </CompressorReductionStyled>
+    );
+};
 
 interface CompressorProps extends ConnectableNode {
-
+    initial: {
+        enabled: boolean,
+        threshold: number,
+        knee: number,
+        ratio: number,
+        attack: number,
+        release: number
+    }
 };
 
 export const Compressor = ({ audio, input, out, initial, serialized$ }: CompressorProps) => {
@@ -57,6 +120,7 @@ export const Compressor = ({ audio, input, out, initial, serialized$ }: Compress
             <Row>
                 <h3>Compressor</h3>
                 <input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} />
+                <CompressorReduction compressor={compressor} />
             </Row>
 
             <Row>
