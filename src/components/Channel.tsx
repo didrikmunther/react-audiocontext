@@ -92,12 +92,12 @@ const initialSerialized: SerializedChannel = {
         settings: getLocal('ES1') ?? {}
     },{
         id: 1,
-        pos: 1,
+        pos: 2,
         name: 'Compressor',
         settings: {}
     },{
         id: 2,
-        pos: 2,
+        pos: 1,
         name: 'Reverb',
         settings: {}
     },{

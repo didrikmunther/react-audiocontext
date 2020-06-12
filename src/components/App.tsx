@@ -5,7 +5,7 @@ import { FrequencyDisplay, WaveDisplay } from './Display';
 import { Midi } from './Midi';
 import { Subject } from 'rxjs';
 import { Piano } from './Piano';
-import { Column } from './style/Geometry';
+import { Row, Button } from './style/Geometry';
 
 interface DemoCanvasWidgetProps {
 	color?: string;
@@ -24,6 +24,10 @@ export const Container = styled.div<ContainerProps>`
 	background-size: 50px 50px;
 	display: flex;
 	align-items: start;
+	flex-wrap: wrap;
+	> div {
+		flex: 1 1 100%;
+	}
 	/* > * {
 		height: 100%;
 		min-height: 100%;
@@ -90,13 +94,18 @@ export const App = () => {
 
 	return (
 		<DemoCanvasWidget>
-			<Piano commands$={commands$}></Piano>
-			<Midi commands$={commands$}></Midi>
-			<Channel audio={audio} commands$={commands$} out={analyser}></Channel>
-			<Column>
+			<Row>
+				<Button onClick={() => { localStorage.clear(); window.location.reload(); }}>Reset</Button>
+				<Piano commands$={commands$}></Piano>
+				<Midi commands$={commands$}></Midi>
+			</Row>
+			<Row>
 				<FrequencyDisplay audio={audio} out={analyser}></FrequencyDisplay>
 				<WaveDisplay audio={audio} out={analyser}></WaveDisplay>
-			</Column>
+			</Row>
+			<Row>
+				<Channel audio={audio} commands$={commands$} out={analyser}></Channel>
+			</Row>
 		</DemoCanvasWidget>
 	);
 };
