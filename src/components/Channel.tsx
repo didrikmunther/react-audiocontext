@@ -5,11 +5,13 @@ import { map } from 'rxjs/operators';
 import { Compressor } from './elements/Compressor';
 import { Reverb } from './elements/Reverb';
 import { EQ } from './elements/EQ';
+import { Row } from './style/Geometry';
+import { LFO, LFOContext } from './elements/LFO';
 
 export type Command = {
     note: number,
     velocity: number
-}
+};
 
 export interface ConnectableNode {
     audio: AudioContext,
@@ -130,6 +132,7 @@ interface ChannelProps {
 
 export const Channel = ({ audio, out, commands$ }: ChannelProps) => {
     const [vsts, setVsts] = useState<VST>([]);
+    const [lfoContext] = useState(new BehaviorSubject<AudioNode | null>(null));
 
     const [serialized, dispatch] = useReducer(
         serializeReducer,
@@ -204,8 +207,13 @@ export const Channel = ({ audio, out, commands$ }: ChannelProps) => {
     }, [audio, commands$, out, staticSerialized]);
 
     return (
-        <>
-            {vsts.map(v => v.element)}
-        </>
+        <LFOContext.Provider value={lfoContext}>
+            <Row>
+                {vsts.map(v => v.element)}
+            </Row>
+            <Row>
+                <LFO audio={audio}></LFO>
+            </Row>
+        </LFOContext.Provider>
     );
 };

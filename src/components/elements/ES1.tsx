@@ -86,10 +86,6 @@ export const ES1 = ({ audio, serialized$, initial, out, commands$ = new Observab
         [note: number]: Playing
     }>({});
 
-    // const [gains, setGains] = useState<GainNode[]>([]);
-    // const [oscillators, setOscillators] = useState<OscillatorNode[]>([]);
-    // const [frequencies, setFrequencies] = useState<number[]>([]);
-
     useEffect(() => {
         finalGain.connect(out);
         finalGain.gain.setValueAtTime(1, audio.currentTime);
@@ -206,6 +202,7 @@ export const ES1 = ({ audio, serialized$, initial, out, commands$ = new Observab
                         <option value="sine">Sine</option>
                         <option value="triangle">Triangle</option>
                         <option value="square">Square</option>
+                        <option value="sawtooth">Sawtooth</option>
                     </select>
                 </label>
             </Row>

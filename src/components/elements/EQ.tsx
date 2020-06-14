@@ -21,92 +21,104 @@ const drawCurve = (audio: AudioContext, filter: BiquadFilterNode, canvas: HTMLCa
     const width = canvas.width;
     const height = canvas.height;
 
-    canvasContext.clearRect(0, 0, width, height);
-    canvasContext.fillRect(0, 0, width, height);
+    let play = true;
 
-    canvasContext.strokeStyle = curveColor;
-    canvasContext.lineWidth = 3;
-    canvasContext.beginPath();
-    canvasContext.moveTo(0, 0);
+    const draw = () => {
+        if(!play) return;
+        requestAnimationFrame(draw);
 
-    const pixelsPerDb = (0.5 * height) / dbScale;
-    
-    var noctaves = 11;
-    
-    var frequencyHz = new Float32Array(width);
-    var magResponse = new Float32Array(width);
-    var phaseResponse = new Float32Array(width);
-    var nyquist = 0.5 * audio.sampleRate;
-    // First get response.
-    for (var i = 0; i < width; ++i) {
-        var f = i / width;
-        
-        // Convert to log frequency scale (octaves).
-        f = nyquist * Math.pow(2.0, noctaves * (f - 1.0));
-        
-        frequencyHz[i] = f;
-    }
+        canvasContext.clearRect(0, 0, width, height);
+        canvasContext.fillRect(0, 0, width, height);
 
-    filter.getFrequencyResponse(frequencyHz, magResponse, phaseResponse);
-
-    
-    for (i = 0; i < width; ++i) {
-        f = magResponse[i];
-        var response = magResponse[i];
-        var dbResponse = 20.0 * Math.log(response) / Math.LN10;
-        
-        var x = i;
-        var y = dbToY(dbResponse, pixelsPerDb, height);
-        
-        if ( i === 0 )
-            canvasContext.moveTo(x,y);
-        else
-            canvasContext.lineTo(x, y);
-    }
-    canvasContext.stroke();
-    canvasContext.beginPath();
-    canvasContext.lineWidth = 1;
-    canvasContext.strokeStyle = gridColor;
-    
-    // Draw frequency scale.
-    for (var octave = 0; octave <= noctaves; octave++) {
-        x = octave * width / noctaves;
-        
-        canvasContext.strokeStyle = gridColor;
-        canvasContext.moveTo(x, 30);
-        canvasContext.lineTo(x, height);
-        canvasContext.stroke();
-
-        f = nyquist * Math.pow(2.0, octave - noctaves);
-        var value = f.toFixed(0);
-        var unit = 'Hz';
-        if (f > 1000) {
-          unit = 'KHz';
-          value = (f/1000).toFixed(1);
-        }
-        canvasContext.textAlign = "center";
-        canvasContext.strokeStyle = textColor;
-        canvasContext.strokeText(value + unit, x, 20);
-    }
-
-    // Draw 0dB line.
-    canvasContext.beginPath();
-    canvasContext.moveTo(0, 0.5 * height);
-    canvasContext.lineTo(width, 0.5 * height);
-    canvasContext.stroke();
-    
-    // Draw decibel scale.
-    
-    for (var db = -dbScale; db < dbScale - 10; db += 10) {
-        y = dbToY(db, pixelsPerDb, height);
-        canvasContext.strokeStyle = textColor;
-        canvasContext.strokeText(db.toFixed(0) + "dB", width - 40, y);
-        canvasContext.strokeStyle = gridColor;
+        canvasContext.strokeStyle = curveColor;
+        canvasContext.lineWidth = 3;
         canvasContext.beginPath();
-        canvasContext.moveTo(0, y);
-        canvasContext.lineTo(width, y);
+        canvasContext.moveTo(0, 0);
+
+        const pixelsPerDb = (0.5 * height) / dbScale;
+        
+        var noctaves = 11;
+        
+        var frequencyHz = new Float32Array(width);
+        var magResponse = new Float32Array(width);
+        var phaseResponse = new Float32Array(width);
+        var nyquist = 0.5 * audio.sampleRate;
+        // First get response.
+        for (var i = 0; i < width; ++i) {
+            var f = i / width;
+            
+            // Convert to log frequency scale (octaves).
+            f = nyquist * Math.pow(2.0, noctaves * (f - 1.0));
+            
+            frequencyHz[i] = f;
+        }
+
+        filter.getFrequencyResponse(frequencyHz, magResponse, phaseResponse);
+        
+        for (i = 0; i < width; ++i) {
+            f = magResponse[i];
+            var response = magResponse[i];
+            var dbResponse = 20.0 * Math.log(response) / Math.LN10;
+            
+            var x = i;
+            var y = dbToY(dbResponse, pixelsPerDb, height);
+            
+            if ( i === 0 )
+                canvasContext.moveTo(x,y);
+            else
+                canvasContext.lineTo(x, y);
+        }
         canvasContext.stroke();
-    }
+        canvasContext.beginPath();
+        canvasContext.lineWidth = 1;
+        canvasContext.strokeStyle = gridColor;
+        
+        // Draw frequency scale.
+        for (var octave = 0; octave <= noctaves; octave++) {
+            x = octave * width / noctaves;
+            
+            canvasContext.strokeStyle = gridColor;
+            canvasContext.moveTo(x, 30);
+            canvasContext.lineTo(x, height);
+            canvasContext.stroke();
+
+            f = nyquist * Math.pow(2.0, octave - noctaves);
+            var value = f.toFixed(0);
+            var unit = 'Hz';
+            if (f > 1000) {
+            unit = 'KHz';
+            value = (f/1000).toFixed(1);
+            }
+            canvasContext.textAlign = "center";
+            canvasContext.strokeStyle = textColor;
+            canvasContext.strokeText(value + unit, x, 20);
+        }
+
+        // Draw 0dB line.
+        canvasContext.beginPath();
+        canvasContext.moveTo(0, 0.5 * height);
+        canvasContext.lineTo(width, 0.5 * height);
+        canvasContext.stroke();
+        
+        // Draw decibel scale.
+        
+        for (var db = -dbScale; db < dbScale - 10; db += 10) {
+            y = dbToY(db, pixelsPerDb, height);
+            canvasContext.strokeStyle = textColor;
+            canvasContext.strokeText(db.toFixed(0) + "dB", width - 40, y);
+            canvasContext.strokeStyle = gridColor;
+            canvasContext.beginPath();
+            canvasContext.moveTo(0, y);
+            canvasContext.lineTo(width, y);
+            canvasContext.stroke();
+        }
+    };
+
+    draw();
+
+    return () => {
+        play = false;
+    };
 }
 
 interface EQProps extends ConnectableNode {
@@ -131,24 +143,42 @@ const BiquadTypes = [
     'allpass'
 ];
 
-const getCutoff = (audio: AudioContext, factor: number): number => {
+export const getCutoff = (audio: AudioContext, factor: number, min: number = 10): number => {
     const nyquist = audio.sampleRate * 0.5;
-    const noctaves = Math.log(nyquist / 10.0) / Math.LN2;
+    const noctaves = Math.log(nyquist / min) / Math.LN2;
     const v2 = Math.pow(2.0, noctaves * (factor - 1.0));
     return v2 * nyquist;
 };
 
-export const EQ = ({ audio, initial, serialized$, input, out }: EQProps) => {
+export const EQ = ({ audio, initial, serialized$, commands$, input, out }: EQProps) => {
     const [enabled, setEnabled] = useState<boolean>(initial.enabled ?? true);
     const [biquad] = useState<BiquadFilterNode>(new BiquadFilterNode(audio));
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
     
-    const [frequency, frequencyKnob] = useKnob(initial.frequency ?? .5, { min: 0, max: 1 });
-    const [detune, detuneKnob] = useKnob(initial.detune ?? 0, { min: 0, max: 100 });
-    const [Q, QKnob] = useKnob(initial.Q ?? 1, { min: 0.0001, max: 100 });
-    const [gain, gainKnob] = useKnob(initial.gain ?? 0, { min: -40, max: 40 });
+    const [frequency, frequencyKnob] = useKnob(initial.frequency ?? .5, { min: 0, max: 1, bind: biquad.frequency });
+    const [detune, detuneKnob] = useKnob(initial.detune ?? 0, { min: 0, max: 100, bind: biquad.detune });
+    const [Q, QKnob] = useKnob(initial.Q ?? 1, { min: 0.0001, max: 100, bind: biquad.Q });
+    const [gain, gainKnob] = useKnob(initial.gain ?? 0, { min: -40, max: 40, bind: biquad.gain });
     const [biquadType, setBiquadType] = useState<BiquadFilterType>((initial.biquadType ?? 'lowpass') as BiquadFilterType);
+
+    // useEffect(() => {
+    //     const lfoGain = new GainNode(audio);
+    //     lfoGain.gain.value = 100;
+
+    //     const lfo = new OscillatorNode(audio);
+    //     lfo.type = 'triangle';
+    //     lfo.frequency.value = 30;
+
+    //     lfo.connect(lfoGain).connect(biquad.frequency);
+    //     lfo.start();
+    // }, [audio, biquad]);
+    
+    useEffect(() => {
+        if(!canvasRef.current) return;
+
+        return drawCurve(audio, biquad, canvasRef.current);
+    }, [audio, biquad, canvasRef]);
 
     useEffect(() => {
         if(enabled)
@@ -164,15 +194,11 @@ export const EQ = ({ audio, initial, serialized$, input, out }: EQProps) => {
     }, [input, biquad, out, enabled]);
 
     useEffect(() => {
-        if(!canvasRef.current) return;
-
         biquad.frequency.setValueAtTime(getCutoff(audio, frequency), audio.currentTime);
         biquad.detune.setValueAtTime(detune, audio.currentTime)
         biquad.Q.setValueAtTime(Q, audio.currentTime);
         biquad.gain.setValueAtTime(gain, audio.currentTime);
         biquad.type = biquadType;
-
-        drawCurve(audio, biquad, canvasRef.current);
     }, [audio, frequency, detune, Q, gain, biquadType, biquad]);
 
     const serializedData = {

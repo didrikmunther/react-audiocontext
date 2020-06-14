@@ -77,11 +77,11 @@ export const Compressor = ({ audio, input, out, initial, serialized$ }: Compress
 
     const [compressor] = useState<DynamicsCompressorNode>(new DynamicsCompressorNode(audio));
 
-    const [threshold, thresholdKnob] = useKnob(initial.threshold ?? -50, { min: -100, max: 0 });
-    const [knee, kneeKnob] = useKnob(initial.knee ?? 40, { min: 0, max: 40 });
-    const [ratio, ratioKnob] = useKnob(initial.ratio ?? 12, { min: 1, max: 20 });
-    const [attack, attackKnob] = useKnob(initial.attack ?? 0, { max: 1 });
-    const [release, releaseKnob] = useKnob(initial.release ?? .25, {min: .01});
+    const [threshold, thresholdKnob] = useKnob(initial.threshold ?? -50, { min: -100, max: 0, bind: compressor.threshold });
+    const [knee, kneeKnob] = useKnob(initial.knee ?? 40, { min: 0, max: 40, bind: compressor.knee });
+    const [ratio, ratioKnob] = useKnob(initial.ratio ?? 12, { min: 1, max: 20, bind: compressor.ratio });
+    const [attack, attackKnob] = useKnob(initial.attack ?? 0, { max: 1, bind: compressor.attack });
+    const [release, releaseKnob] = useKnob(initial.release ?? .25, { min: .01, bind: compressor.release });
 
     useEffect(() => {
         if(enabled)
