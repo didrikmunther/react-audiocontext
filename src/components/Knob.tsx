@@ -41,7 +41,10 @@ export const useKnob = (initialValue: number, options: {
 } = {}): [number, JSX.Element, React.Dispatch<React.SetStateAction<number>>] => {
     const [value, setValue] = useState<number>(initialValue);
     const [active, setActive] = useState<boolean>(false);
-    const [lfoCount, setLfoCount] = useState<number>(0);
+    const [lfos, setLfos] = useState<{
+        lfo: AudioNode,
+        remove: () => void
+    }[]>([]);
 
     const knobRef = useRef<HTMLDivElement>(null);
 
@@ -64,7 +67,14 @@ export const useKnob = (initialValue: number, options: {
                     if(collision([e.clientX, e.clientY], knob.getBoundingClientRect())) {
                         if(!options.bind) return;
                         lfo.connect(options.bind);
-                        setLfoCount(v => v + 1);
+                        setLfos(lfos => [...lfos, {
+                            lfo,
+                            remove: () => {
+                                setLfos(lfos => lfos.filter(v => v.lfo !== lfo));
+                                if(!options.bind) return;
+                                lfo.disconnect(options.bind);
+                            }
+                        }]);
                     }
                 };
 
@@ -73,7 +83,7 @@ export const useKnob = (initialValue: number, options: {
         });
 
         return () => sub.unsubscribe();
-    }, [lfo$, setActive, options.bind, knobRef, setLfoCount]);
+    }, [lfo$, setActive, options.bind, knobRef, setLfos]);
 
     const knob = (
         <DroppableKnob ref={knobRef} active={active}>
@@ -83,7 +93,7 @@ export const useKnob = (initialValue: number, options: {
                 min={options.min ?? 0}
                 max={options.max ?? 1}
                 step={options.step ?? .01}
-                lfoCount={lfoCount} />
+                lfos={lfos} />
         </DroppableKnob>
     );
 
@@ -97,10 +107,13 @@ interface KnobProps {
     min?: number,
     max?: number,
     step?: number,
-    lfoCount?: number
+    lfos?: {
+        lfo: AudioNode,
+        remove: () => void
+    }[]
 };
 
-export const Knob = ({ onChange, factor = .01, min = -1, max = 1, initialValue, step = .01, lfoCount = 0 }: KnobProps) => {
+export const Knob = ({ onChange, factor = .01, min = -1, max = 1, initialValue, step = .01, lfos = [] }: KnobProps) => {
     const [value, setValue] = useState(initialValue);
     const knob = useRef(null);
 
@@ -147,7 +160,11 @@ export const Knob = ({ onChange, factor = .01, min = -1, max = 1, initialValue, 
     return (
         <KnobWrapper>
             <LFOCount>
-                { [...Array(lfoCount)].map((v, i) => <LFOBlob key={i} />) }
+                {
+                    lfos.map((v, i) =>
+                        <LFOBlob key={i} onClick={(e) => v.remove()} />
+                    )
+                }
             </LFOCount>
             <StyledKnob ref={knob} onMouseDown={onMouseDown} style={style}>
             </StyledKnob>
@@ -171,12 +188,17 @@ const LFOBlob = styled.div`
     height: 10px;
     border-radius: 100%;
     background: blue;
+    cursor: pointer;
+    opacity: .8;
+    &:hover {
+        opacity: 1;
+    }
 `;
 
 const StyledKnob = styled.div`
     position: relative;
-    width: 100px;
-    height: 100px;
+    width: 75px;
+    height: 75px;
     border-radius: 100%;
     background: url('./resources/knob.png');
     background-position: center center;
