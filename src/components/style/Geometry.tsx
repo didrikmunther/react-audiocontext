@@ -12,7 +12,6 @@ export const Column = styled.div`
 `;
 
 export const Button = styled.button`
-    margin: 20px 0 0 20px;
     padding: 10px 20px;
     border: 1px solid black;
     border-radius: 3px;

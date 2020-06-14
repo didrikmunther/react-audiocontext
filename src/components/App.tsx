@@ -6,6 +6,7 @@ import { Midi } from './Midi';
 import { Subject } from 'rxjs';
 import { Piano } from './Piano';
 import { Row, Button } from './style/Geometry';
+import { Track } from './Track';
 
 interface DemoCanvasWidgetProps {
 	color?: string;
@@ -95,9 +96,12 @@ export const App = () => {
 	return (
 		<DemoCanvasWidget>
 			<Row>
-				<Button onClick={() => { localStorage.clear(); window.location.reload(); }}>Reset</Button>
+				<Button style={{margin: '20px 0 0 20px'}} onClick={() => { localStorage.clear(); window.location.reload(); }}>Reset</Button>
 				<Piano commands$={commands$}></Piano>
 				<Midi commands$={commands$}></Midi>
+			</Row>
+			<Row>
+				<Track commands$={commands$}></Track>
 			</Row>
 			<Row>
 				<FrequencyDisplay audio={audio} out={analyser}></FrequencyDisplay>
