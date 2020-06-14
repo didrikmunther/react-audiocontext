@@ -143,11 +143,15 @@ const BiquadTypes = [
     'allpass'
 ];
 
-export const getCutoff = (audio: AudioContext, factor: number, min: number = 10): number => {
-    const nyquist = audio.sampleRate * 0.5;
+export const getLogScale = (factor: number, min: number, max: number) => {
+    const nyquist = max;
     const noctaves = Math.log(nyquist / min) / Math.LN2;
     const v2 = Math.pow(2.0, noctaves * (factor - 1.0));
     return v2 * nyquist;
+}
+
+export const getCutoff = (audio: AudioContext, factor: number, min: number = 10): number => {
+    return getLogScale(factor, min, audio.sampleRate * .5);
 };
 
 export const EQ = ({ audio, initial, serialized$, commands$, input, out }: EQProps) => {

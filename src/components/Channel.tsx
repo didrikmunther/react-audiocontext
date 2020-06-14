@@ -5,7 +5,6 @@ import { map } from 'rxjs/operators';
 import { Compressor } from './elements/Compressor';
 import { Reverb } from './elements/Reverb';
 import { EQ } from './elements/EQ';
-import { Row } from './style/Geometry';
 import { LFO, LFOContext } from './elements/LFO';
 import { Box } from './style/Box';
 import styled from 'styled-components';
@@ -267,9 +266,7 @@ export const Channel = ({ audio, out, commands$ }: ChannelProps) => {
             <Box>
                 {vsts.map(v => v.wrapper)}
             </Box>
-            <Row>
-                <LFO audio={audio}></LFO>
-            </Row>
+            <LFO audio={audio}></LFO>
 
         </LFOContext.Provider>
     );

@@ -4,11 +4,14 @@ import { BehaviorSubject } from 'rxjs';
 import { useKnob } from '../Knob';
 import { Row } from '../style/Geometry';
 import { tryTo } from '../Channel';
-import { getCutoff } from './EQ';
+import { getLogScale, getCutoff } from './EQ';
 
 export const LFOContext = React.createContext<BehaviorSubject<AudioNode | null>>(new BehaviorSubject<AudioNode | null>(null));
 
 const MinFreq = .1;
+const MinGain = .01;
+
+const getGain = (gain: number) => gain === 0 ? 0 : getLogScale(gain, MinGain, 1000);
 
 interface LFOProps {
     audio: AudioContext
@@ -21,7 +24,7 @@ export const LFO = ({ audio }: LFOProps) => {
     const [pos, setPos] = useState<[number, number]>();
 
     const [frequency, frequencyKnob] = useKnob(.5, { min: 0, max: 1 });
-    const [gain, gainKnob] = useKnob(100, { min: 0, max: 1000, step: 1 });
+    const [gain, gainKnob] = useKnob(.1, { min: 0, max: 1, step: .001 });
 
     const [form, setForm] = useState<OscillatorType>('sine' as OscillatorType);
     const [lfo] = useState<OscillatorNode>(new OscillatorNode(audio));
@@ -34,7 +37,7 @@ export const LFO = ({ audio }: LFOProps) => {
     useEffect(() => {
         lfo.type = form;
         lfo.frequency.setValueAtTime(getCutoff(audio, frequency, MinFreq), audio.currentTime);
-        lfoGain.gain.setValueAtTime(gain, audio.currentTime);
+        lfoGain.gain.setValueAtTime(getGain(gain), audio.currentTime);
         lfo.connect(lfoGain);
 
         return () => {
@@ -46,17 +49,11 @@ export const LFO = ({ audio }: LFOProps) => {
             ].forEach(tryTo);
         };
     }, [audio, lfo, lfoGain, frequency, form, gain]);
-
-    // const onMouseMove = useCallback(
-    //     (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-
-    //     },
-    //     []
-    // );
     
     const onMouseDown = useCallback(
         (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
             setIsMoving(true);
+            let hasMoved = false;
 
             const start = [e.clientX, e.clientY];
             setPos([0, 0]);
@@ -66,18 +63,24 @@ export const LFO = ({ audio }: LFOProps) => {
                 document.removeEventListener('mousemove', onMouseMove);
 
                 setIsMoving(false);
-                lfo$.next(null);
+
+                if(hasMoved)
+                    lfo$.next(null);
             };
 
             const onMouseMove = (e: MouseEvent) => {
+                if(!hasMoved) {
+                    hasMoved = true;
+                    lfo$.next(lfoGain);
+                }
+
+                e.preventDefault();
                 const position: [number, number] = [e.clientX - start[0], e.clientY - start[1]];
                 setPos(position);
             };
     
             document.addEventListener('mouseup', onMouseUp);
             document.addEventListener('mousemove', onMouseMove);
-
-            lfo$.next(lfoGain);
         },
         [lfo$, lfoGain]
     );
@@ -111,7 +114,7 @@ export const LFO = ({ audio }: LFOProps) => {
                         {frequencyKnob}
                     </label>
                     <label>
-                        <span>Gain: {gain}</span>
+                        <span>Gain: {getGain(gain).toFixed(Math.log10(1 / MinGain))}</span>
                         {gainKnob}
                     </label>
                 </Row>
