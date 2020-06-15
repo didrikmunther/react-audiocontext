@@ -9,6 +9,8 @@ type PianoProps = {
 
 export const Piano = ({ commands$ }: PianoProps) => {
     useEffect(() => {
+        const origin = 'KEYBOARDPIANO';
+
         const onKeyDown = (e: KeyboardEvent) => {
             if(e.repeat) return;
             const note = Bindings[e.key.toLowerCase()];
@@ -17,7 +19,8 @@ export const Piano = ({ commands$ }: PianoProps) => {
 
             commands$.next({
                 note,
-                velocity: 127
+                velocity: 127,
+                origin
             });
         };
 
@@ -29,7 +32,8 @@ export const Piano = ({ commands$ }: PianoProps) => {
 
             commands$.next({
                 note,
-                velocity: 0
+                velocity: 0,
+                origin
             });
         };
 

@@ -10,6 +10,7 @@ import { Box } from './style/Box';
 import styled from 'styled-components';
 
 export type Command = {
+    origin: string,
     note: number,
     velocity: number
 };
@@ -300,6 +301,7 @@ const PluginElement = ({ element, children, serialized$, initial = {} }: PluginE
             };
 
             const onMouseMove = (e: MouseEvent) => {
+                e.preventDefault();
                 const pos: [number, number] = [e.clientX - offset[0], e.clientY - offset[1]];
                 setPos(pos);
                 serialized$.next({ open, pos });

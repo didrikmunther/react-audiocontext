@@ -162,21 +162,9 @@ export const EQ = ({ audio, initial, serialized$, commands$, input, out }: EQPro
     
     const [frequency, frequencyKnob] = useKnob(initial.frequency ?? .5, { min: 0, max: 1, bind: biquad.frequency });
     const [detune, detuneKnob] = useKnob(initial.detune ?? 0, { min: 0, max: 100, bind: biquad.detune });
-    const [Q, QKnob] = useKnob(initial.Q ?? 1, { min: 0.0001, max: 100, bind: biquad.Q });
+    const [Q, QKnob] = useKnob(initial.Q ?? .01, { min: 0.0001, max: 1, bind: biquad.Q });
     const [gain, gainKnob] = useKnob(initial.gain ?? 0, { min: -40, max: 40, bind: biquad.gain });
     const [biquadType, setBiquadType] = useState<BiquadFilterType>((initial.biquadType ?? 'lowpass') as BiquadFilterType);
-
-    // useEffect(() => {
-    //     const lfoGain = new GainNode(audio);
-    //     lfoGain.gain.value = 100;
-
-    //     const lfo = new OscillatorNode(audio);
-    //     lfo.type = 'triangle';
-    //     lfo.frequency.value = 30;
-
-    //     lfo.connect(lfoGain).connect(biquad.frequency);
-    //     lfo.start();
-    // }, [audio, biquad]);
     
     useEffect(() => {
         if(!canvasRef.current) return;
@@ -200,7 +188,7 @@ export const EQ = ({ audio, initial, serialized$, commands$, input, out }: EQPro
     useEffect(() => {
         biquad.frequency.setValueAtTime(getCutoff(audio, frequency), audio.currentTime);
         biquad.detune.setValueAtTime(detune, audio.currentTime)
-        biquad.Q.setValueAtTime(Q, audio.currentTime);
+        biquad.Q.setValueAtTime(getLogScale(Q, .0001, 100), audio.currentTime);
         biquad.gain.setValueAtTime(gain, audio.currentTime);
         biquad.type = biquadType;
     }, [audio, frequency, detune, Q, gain, biquadType, biquad]);
@@ -247,7 +235,7 @@ export const EQ = ({ audio, initial, serialized$, commands$, input, out }: EQPro
                     {detuneKnob}
                 </label>
                 <label>
-                    <span>Q: {Q}</span>
+                    <span>Q: {getLogScale(Q, .0001, 100).toFixed(3)}</span>
                     {QKnob}
                 </label>
                 <label>

@@ -60,6 +60,8 @@ export const Midi = ({ commands$ }: MidiProps) => {
     }, [access, setMan, setName, setInterfaces]);
 
     useEffect(() => {
+        const origin = `MIDI:${man}:${name}`;
+
         interfaces.forEach(input => {
             input.onmidimessage = e => {
                 const [command, note] = e.data;
@@ -67,8 +69,8 @@ export const Midi = ({ commands$ }: MidiProps) => {
 
                 // console.log(command, note, velocity);
 
-                const noteOn = () => commands$.next({note, velocity});
-                const noteOff = () => commands$.next({note, velocity: 0});
+                const noteOn = () => commands$.next({note, velocity, origin});
+                const noteOff = () => commands$.next({note, velocity: 0, origin});
 
                 switch(command) {
                     case 144:
@@ -84,7 +86,7 @@ export const Midi = ({ commands$ }: MidiProps) => {
                 }
             };
         });
-    }, [commands$, interfaces]);
+    }, [commands$, interfaces, man, name]);
 
     if(!error && interfaces.length <= 0)
         return <></>;

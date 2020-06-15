@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
 import { Channel, Command } from './Channel';
 import { FrequencyDisplay, WaveDisplay } from './Display';
 import { Midi } from './Midi';
@@ -7,6 +6,7 @@ import { Subject } from 'rxjs';
 import { Piano } from './Piano';
 import { Row, Button } from './style/Geometry';
 import { Track } from './Track';
+import { Container } from './style/Container';
 
 interface DemoCanvasWidgetProps {
 	color?: string;
@@ -14,54 +14,9 @@ interface DemoCanvasWidgetProps {
 	children: React.ReactNode;
 };
 
-interface ContainerProps {
-	color: string;
-	background: string
-};
-
-export const Container = styled.div<ContainerProps>`
-	height: 100%;
-	background-color: ${p => p.background};
-	background-size: 50px 50px;
-	display: flex;
-	align-items: start;
-	flex-wrap: wrap;
-	> div {
-		flex: 1 1 100%;
-	}
-	/* > * {
-		height: 100%;
-		min-height: 100%;
-		width: 100%;
-	} */
-	background-image: linear-gradient(
-			0deg,
-			transparent 24%,
-			${p => p.color} 25%,
-			${p => p.color} 26%,
-			transparent 27%,
-			transparent 74%,
-			${p => p.color} 75%,
-			${p => p.color} 76%,
-			transparent 77%,
-			transparent
-		),
-		linear-gradient(
-			90deg,
-			transparent 24%,
-			${p => p.color} 25%,
-			${p => p.color} 26%,
-			transparent 27%,
-			transparent 74%,
-			${p => p.color} 75%,
-			${p => p.color} 76%,
-			transparent 77%,
-			transparent
-		);
-`;
 
 const DemoCanvasWidget = (props: DemoCanvasWidgetProps) => (
-	<Container
+    <Container
 		background={props.background || 'rgb(60, 60, 60)'}
 		color={props.color || 'rgba(255,255,255, 0.05)'}>
 		{props.children}
@@ -72,10 +27,10 @@ const StorageVersion = '1.3';
 const StorageVersionKey = 'STORAGE_VERSION';
 
 export const App = () => {
-	const [audio] = useState(new AudioContext());
-	const [analyser] = useState(audio.createAnalyser());
+    const [audio] = useState<AudioContext>(new AudioContext());
+    const [analyser] = useState<AnalyserNode>(audio.createAnalyser());
 
-	useEffect(() => {
+    useEffect(() => {
 		const version = localStorage.getItem(StorageVersionKey);
 		if(version !== StorageVersion) {
 			console.log(`${version} != ${StorageVersion}, clearing localStorage`);

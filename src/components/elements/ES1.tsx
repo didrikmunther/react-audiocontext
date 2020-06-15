@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { ConnectableNode } from '../Channel';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { ConnectableNode, tryTo } from '../Channel';
 import { Box } from '../style/Box';
 import { Notes } from '../../data/Notes';
 import { useKnob } from '../Knob';
@@ -48,6 +48,7 @@ export type OscillatorMode = 'poly' | 'mono' | 'legato';
 // };
 
 interface Playing {
+    origin: string,
     playing: boolean,
     velocity: number,
     osc: OscillatorNode[],
@@ -82,8 +83,8 @@ export const ES1 = ({ audio, serialized$, initial, out, commands$ = new Observab
     const [voices, voicesKnob] = useKnob(initial.voices ?? 1, { min: 1, max: 16, step: 1 });
     const [detune, detuneKnob] = useKnob(initial.detune ?? 0);
 
-    const [playing] = useState<{
-        [note: number]: Playing
+    const playing = useRef<{
+        [note: number]: Playing[],
     }>({});
 
     useEffect(() => {
@@ -92,27 +93,30 @@ export const ES1 = ({ audio, serialized$, initial, out, commands$ = new Observab
     }, [audio, out, finalGain]);
 
     useEffect(() => {
-        const sub = commands$.subscribe(({ note, velocity }) => {
+        const sub = commands$.subscribe(({ note, velocity, origin }) => {
             console.log('ES1 received command', note, velocity);
 
-            if(velocity <= 0) {
-                const active = playing[note];
-                if(!active)
-                    return;
-
+            const current = playing.current[note];
+            const active = current?.find(v => v.origin === origin);
+            if(active) {
                 active.playing = false;
 
                 active.env.gain.cancelScheduledValues(audio.currentTime)
                     .setTargetAtTime(active.env.gain.value, audio.currentTime, 0)
                     .linearRampToValueAtTime(0, audio.currentTime + release);
 
-                setTimeout(() => {
-                    active.osc.forEach(v => v.stop(audio.currentTime));
-                    active.gain.disconnect(finalGain);
-                }, release * 1e3);
+                current.splice(current.findIndex(v => v === active), 1);
 
-                return;
+                setTimeout(() => {
+                    [
+                        () => active.osc.forEach(v => v.stop(audio.currentTime)),
+                        () => active.gain.disconnect(finalGain)
+                    ].forEach(tryTo);
+                }, release * 1e3);
             }
+
+            if(velocity <= 0)
+                return;
 
             const env = audio.createGain();
             env.gain.cancelScheduledValues(audio.currentTime)
@@ -141,13 +145,17 @@ export const ES1 = ({ audio, serialized$, initial, out, commands$ = new Observab
             // console.log('Playing frequency', toneName, frequency);
             osc.forEach(v => v.start());
 
-            playing[note] = {
+            if(!playing.current[note])
+                playing.current[note] = [];
+
+            playing.current[note].push({
+                origin,
                 playing: true,
                 velocity,
                 osc,
                 env,
                 gain
-            };
+            });
         });
 
         return () => sub.unsubscribe();

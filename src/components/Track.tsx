@@ -67,6 +67,10 @@ export const Track = ({ commands$ }: TrackProps) => {
                 setTimeouts(timeouts);
             } else {
                 timeouts.forEach(clearTimeout);
+                recording.current.forEach(v => commands$.next({
+                    ...v.command,
+                    velocity: 0
+                }));
             }
 
             setIsPlaying(v => !v);
